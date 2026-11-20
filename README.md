@@ -1,0 +1,2 @@
+# GammaRuntimeanddoserecord
+auto report doseandruntime
