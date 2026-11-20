@@ -1,0 +1,2525 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gamma Irradiator 6-Source Telemetry & Dosimetry Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #060b14;
+      --panel-bg: rgba(12, 22, 39, 0.88);
+      --neon-cyan: #00f0ff;
+      --neon-green: #10b981;
+      --neon-red: #f43f5e;
+      --neon-amber: #f59e0b;
+      --neon-purple: #a855f7;
+    }
+
+    body {
+      font-family: 'Chakra Petch', sans-serif;
+      background-color: var(--bg-dark);
+      background-image:
+        radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.08), transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(16, 185, 129, 0.08), transparent 45%),
+        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    .font-orbitron {
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .font-mono-tech {
+      font-family: 'Chakra Petch', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hud-panel {
+      background: var(--panel-bg);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      box-shadow: 0 0 25px rgba(0, 0, 0, 0.55), inset 0 0 18px rgba(0, 240, 255, 0.04);
+      backdrop-filter: blur(10px);
+    }
+
+    .hud-panel-active {
+      border-color: rgba(16, 185, 129, 0.65);
+      box-shadow: 0 0 28px rgba(16, 185, 129, 0.22), inset 0 0 20px rgba(16, 185, 129, 0.08);
+    }
+
+    .hud-panel-danger {
+      border-color: rgba(244, 63, 94, 0.75);
+      box-shadow: 0 0 28px rgba(244, 63, 94, 0.25), inset 0 0 20px rgba(244, 63, 94, 0.1);
+    }
+
+    .scifi-checkbox {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border: 2px solid #f43f5e;
+      border-radius: 4px;
+      background: rgba(15, 23, 42, 0.9);
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .scifi-checkbox:checked {
+      background: #f43f5e;
+      box-shadow: 0 0 12px rgba(244, 63, 94, 0.8);
+    }
+
+    .scifi-checkbox:checked::after {
+      content: "✓";
+      position: absolute;
+      color: #ffffff;
+      font-weight: bold;
+      font-size: 14px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -52%);
+    }
+
+    .scifi-checkbox:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      border-color: #64748b;
+      box-shadow: none;
+    }
+
+    .src-pick-btn.active {
+      background: rgba(0, 240, 255, 0.22);
+      border-color: #00f0ff;
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+    }
+
+    #printChartsSection,
+    #printQuarterlyTableSection {
+      display: none;
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm 10mm;
+      }
+
+      body {
+        background: #ffffff !important;
+        background-image: none !important;
+        color: #0f172a !important;
+        font-size: 11pt;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      .hud-panel {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        color: #0f172a !important;
+      }
+
+      #printHeader {
+        display: block !important;
+        border-bottom: 2px solid #0f172a;
+        padding-bottom: 8px;
+        margin-bottom: 10px;
+      }
+
+      #kpiSummaryGrid {
+        display: grid !important;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        margin-bottom: 10px !important;
+      }
+
+      #kpiSummaryGrid .hud-panel {
+        padding: 8px 10px !important;
+      }
+
+      #kpiSummaryGrid .text-xl,
+      #kpiSummaryGrid .text-2xl {
+        font-size: 13pt !important;
+        color: #0f172a !important;
+      }
+
+      #printChartsSection {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+        margin-bottom: 10px !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .print-chart-box {
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 8px;
+        background: #ffffff;
+      }
+
+      .print-chart-box img {
+        width: 100%;
+        height: 225px;
+        object-fit: contain;
+        display: block;
+      }
+
+      #printQuarterlyTableSection {
+        display: block !important;
+        margin-bottom: 14px !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .print-q-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10.5pt;
+      }
+
+      .print-q-table th,
+      .print-q-table td {
+        border: 1px solid #94a3b8;
+        padding: 5px 8px;
+      }
+
+      .print-q-table th {
+        background: #f1f5f9;
+        color: #0f172a;
+        font-weight: 700;
+      }
+
+      .print-q-table tr.total-row td {
+        background: #e2e8f0;
+        font-weight: 700;
+        color: #0f172a;
+        border-top: 2px solid #334155;
+      }
+
+      .print-signatures {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 24px !important;
+        margin-top: 12px !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body class="p-3 md:p-6 max-w-[1440px] mx-auto">
+
+  <!-- หัวกระดาษสำหรับรายงาน PDF เท่านั้น -->
+  <div id="printHeader" class="hidden">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-bold text-slate-900">รายงานสรุปการเดินเครื่องและปริมาณรังสีเครื่องฉายรังสีแกมมา (6 SOURCES)</h1>
+        <p id="printReportPeriod" class="text-xs text-slate-700 mt-0.5"></p>
+        <p id="printCo60Summary" class="text-xs text-slate-600 mt-0.5"></p>
+      </div>
+      <div class="text-right text-xs text-slate-600">
+        <div>ระบบตรวจวัดและคำนวณโดส (Co-60 Decay & Mapping)</div>
+        <div id="printGeneratedAt" class="mt-0.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP HEADER BAR -->
+  <header class="hud-panel rounded-lg p-4 mb-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 no-print">
+    <div>
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <span class="px-2.5 py-0.5 text-xs font-mono-tech font-bold tracking-wider uppercase rounded bg-cyan-500/15 text-cyan-300 border border-cyan-400/40">
+          GAMMA IRRADIATOR TELEMETRY
+        </span>
+        <span id="fiscalBadge" class="px-2.5 py-0.5 text-xs font-mono-tech font-bold rounded bg-amber-500/15 text-amber-300 border border-amber-400/40">
+          ปีงบประมาณ - • ไตรมาส -
+        </span>
+        <span id="acMainsBadge" class="text-xs font-mono-tech text-emerald-300 px-2 py-0.5 border border-emerald-500/40 bg-emerald-950/40 rounded">
+          AC MAINS: NORMAL
+        </span>
+      </div>
+      <h1 class="text-xl md:text-2xl font-orbitron font-bold tracking-wider text-white mt-1.5">
+        6-SOURCE IRRADIATION & DOSIMETRY <span class="text-cyan-400">COMMAND</span>
+      </h1>
+      <p class="text-xs md:text-sm text-slate-400 mt-0.5">
+        ระบบติดตามสถานะ Source 1-6 แบบ Real-time • คำนวณการสลายตัวของ Co-60 • คำนวณโดสรวมตามชุด Source • รายงานรายไตรมาส (พ.ศ.)
+      </p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+      <div class="bg-slate-950/80 border border-cyan-500/30 rounded px-3.5 py-2 text-right">
+        <div class="text-[10px] font-mono-tech text-cyan-400 uppercase tracking-widest">THAI TIME (ICT +7)</div>
+        <div id="liveThaiClock" class="text-sm md:text-base font-mono-tech font-bold text-white">กำลังโหลดเวลา...</div>
+      </div>
+
+      <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-700/80 rounded px-3 py-2">
+        <span id="connIndicator" class="w-3 h-3 rounded-full bg-amber-400 animate-pulse"></span>
+        <div class="text-xs">
+          <div id="connStatusText" class="font-bold text-amber-300">โหมดจำลอง (SIMULATION)</div>
+          <div class="text-[10px] text-slate-400 font-mono-tech">LAN: 192.168.10.1</div>
+        </div>
+        <button id="toggleModeBtn" onclick="toggleConnectionMode()" class="ml-2 px-2.5 py-1 text-xs font-bold rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/50 transition">
+          สลับเป็น Arduino จริง
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- แผงเชื่อมต่อ & จำลองการรับ-ส่ง Log กับ Arduino SD Card -->
+  <section class="hud-panel rounded-lg p-4 mb-5 border-emerald-500/40 no-print">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-emerald-500/20 pb-3 mb-3">
+      <div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="px-2 py-0.5 text-xs font-mono-tech font-bold bg-emerald-950 text-emerald-300 border border-emerald-400/50 rounded">
+            ARDUINO SD LOG SYNC & LIVE POLLING
+          </span>
+          <span id="autoArduinoStatusBadge" class="text-xs font-mono-tech px-2.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-amber-300">
+            AUTO WRITE: OFF (MANUAL / SIM)
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">
+          รับสถานะสด (<code class="text-cyan-300">/status</code>) ทุก 1 วินาที • ดึงไฟล์ <code class="text-emerald-300">/LOGS.CSV</code> จาก SD Card • ส่ง Log ขึ้น Arduino หรือทดสอบแก้ไข/Import CSV พร้อมตรวจ CRC32
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <input type="text" id="arduinoEndpointInput" value="http://192.168.10.1"
+          class="w-44 bg-slate-950 border border-emerald-500/40 rounded px-2.5 py-1.5 font-mono-tech text-xs text-emerald-200 focus:outline-none focus:border-emerald-400"
+          placeholder="http://192.168.10.1" />
+        <button type="button" id="toggleAutoArduinoBtn" onclick="toggleAutoWriteToArduino()"
+          class="px-3 py-1.5 rounded bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/50 text-xs font-bold transition">
+          ⚡ เปิดเขียน Log อัตโนมัติ
+        </button>
+        <button type="button" onclick="sendLatestLogToArduinoNow()"
+          class="px-3 py-1.5 rounded bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-200 border border-cyan-400/50 text-xs font-bold transition">
+          ↑ ส่ง Log ล่าสุดไป Arduino
+        </button>
+        <button type="button" onclick="fetchLogsFromArduinoEndpoint()"
+          class="px-3 py-1.5 rounded bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-200 border border-indigo-400/50 text-xs font-bold transition">
+          ↓ ดึง Log จาก Arduino
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+      <div class="xl:col-span-8">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+          <label for="arduinoLogEditorTextarea" class="text-xs font-mono-tech text-emerald-300 font-bold">
+            กล่องจำลอง / แก้ไข Log รูปแบบ Arduino CSV (seq,mode,sources,ac_status,start_time,end_time,duration_min,reason,crc32)
+          </label>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button type="button" onclick="generateArduinoSampleLogText()"
+              class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-[11px] font-bold">
+              สร้างตัวอย่าง Log
+            </button>
+            <button type="button" onclick="recalcCrcInEditor()"
+              class="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 border border-amber-400/50 text-[11px] font-bold">
+              อัปเดต CRC32 ทุกบรรทัด
+            </button>
+          </div>
+        </div>
+        <textarea id="arduinoLogEditorTextarea" rows="4"
+          class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded p-2.5 font-mono-tech text-xs text-emerald-100 focus:outline-none"
+          placeholder="seq,mode,sources,ac_status,start_time,end_time,duration_min,reason,crc32"></textarea>
+      </div>
+
+      <div class="xl:col-span-4 bg-slate-950/80 border border-slate-800 rounded-lg p-3 flex flex-col justify-between gap-2.5">
+        <div class="text-xs font-mono-tech text-cyan-300 font-bold">นำเข้า / ส่งออก Log สำหรับทดสอบหรือย้ายข้อมูล</div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="importLogFromEditor()"
+            class="flex-1 px-3 py-1.5 rounded bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-200 border border-emerald-400/50 text-xs font-bold">
+            📥 Import Log เข้าหน้าเว็บ
+          </button>
+          <label class="flex-1 px-3 py-1.5 rounded bg-cyan-600/25 hover:bg-cyan-600/40 text-cyan-200 border border-cyan-400/50 text-xs font-bold text-center cursor-pointer">
+            📄 เลือกไฟล์ .CSV
+            <input type="file" id="importCsvFileInput" accept=".csv,text/csv" onchange="handleCsvFileUpload(event)" class="hidden" />
+          </label>
+        </div>
+        <div id="logEditorStatusMsg" class="font-mono-tech text-[11px] text-slate-400">
+          พร้อมใช้งาน — แก้ไขข้อความด้านซ้ายหรือเลือกไฟล์ .CSV แล้วกด Import เพื่อทดสอบการคำนวณโดสและกราฟได้ทันที
+        </div>
+      </div>
+    </div>
+
+    <div id="autoArduinoLogFeedback" class="mt-2 font-mono-tech text-[11px] text-slate-400">
+      โหมดเขียน Log อัตโนมัติปิดอยู่ (กด "เปิดเขียน Log อัตโนมัติ" เพื่อให้ส่ง Log ไปยัง IP ของ Arduino ทุกครั้งที่จบรอบ)
+    </div>
+  </section>
+
+  <!-- CO-60 DECAY & COMBINED DOSE RATE SECTION -->
+  <section class="hud-panel rounded-lg p-4 mb-5 border-purple-500/40 no-print">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-purple-500/30 pb-3 mb-4">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <span class="px-2 py-0.5 text-xs font-mono-tech font-bold bg-purple-950 text-purple-300 border border-purple-400/50 rounded">ISOTOPE: Co-60 (T½ = 5.2714 YRS)</span>
+        <h2 class="text-base md:text-lg font-orbitron font-bold text-white tracking-wide">
+          CO-60 ACTIVITY & COMBINED MAPPING DOSE RATE
+        </h2>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" onclick="exportConfigAndPresetsJSON()" class="px-3 py-1.5 rounded bg-purple-500/20 hover:bg-purple-500/35 text-purple-200 border border-purple-400/50 text-xs font-bold">
+          💾 Export Config & Presets (.JSON)
+        </button>
+        <label class="px-3 py-1.5 rounded bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/50 text-xs font-bold cursor-pointer">
+          📂 Import Config & Presets (.JSON)
+          <input type="file" id="importConfigJsonInput" accept=".json,application/json" onchange="handleConfigJsonUpload(event)" class="hidden" />
+        </label>
+        <label class="text-xs text-slate-400 ml-1">หน่วยปริมาณรังสี:</label>
+        <select id="doseUnitSelect" onchange="saveCo60Settings()" class="bg-slate-950 border border-purple-500/50 rounded px-2.5 py-1 text-xs font-mono-tech text-purple-200 focus:outline-none">
+          <option value="kGy">kGy (กิโลเกรย์)</option>
+          <option value="Gy">Gy (เกรย์)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
+      <div class="xl:col-span-7 space-y-4">
+        <div class="bg-slate-950/75 border border-purple-500/30 rounded-lg p-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+            <span class="text-xs font-mono-tech text-purple-300 uppercase font-bold">A. วันอ้างอิงความแรงรังสี Co-60 (ACTIVITY REFERENCE)</span>
+            <span id="co60DecayBadge" class="text-[11px] font-mono-tech text-purple-200">Decay: 1.000000</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-slate-300 mb-1">ความแรงรังสี Co-60 เริ่มต้น (Curie)</label>
+              <div class="relative">
+                <input type="number" step="any" id="initialCurieInput" oninput="saveCo60Settings()"
+                  class="w-full bg-slate-900 border border-purple-500/40 rounded px-3 py-1.5 font-mono-tech text-sm text-white focus:outline-none focus:border-purple-400" />
+                <span class="absolute right-3 top-1.5 text-xs font-mono-tech text-purple-400">Ci</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-300 mb-1">ณ วันที่อ้างอิง Co-60 (วัน/เดือน/ปี พ.ศ.)</label>
+              <div class="grid grid-cols-3 gap-1.5">
+                <select id="co60RefDay" onchange="saveCo60Settings()" class="bg-slate-900 border border-purple-500/40 rounded px-1.5 py-1.5 text-xs text-white"></select>
+                <select id="co60RefMonth" onchange="saveCo60Settings()" class="bg-slate-900 border border-purple-500/40 rounded px-1.5 py-1.5 text-xs text-white"></select>
+                <select id="co60RefYearBE" onchange="saveCo60Settings()" class="bg-slate-900 border border-purple-500/40 rounded px-1.5 py-1.5 text-xs text-white"></select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-950/75 border border-cyan-500/30 rounded-lg p-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+            <span class="text-xs font-mono-tech text-cyan-300 uppercase font-bold">B. DOSE RATE รวมตาม MAPPING & PRESETS (/นาที)</span>
+            <span id="doseDecayBadge" class="text-[11px] font-mono-tech text-cyan-200">Mapping Decay: 1.000000</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3 items-end">
+            <div class="md:col-span-5">
+              <label class="block text-xs text-slate-300 mb-1">ณ วันที่ทำ Mapping (วัน/เดือน/ปี พ.ศ.)</label>
+              <div class="grid grid-cols-3 gap-1">
+                <select id="doseRefDay" onchange="saveCo60Settings()" class="bg-slate-900 border border-cyan-500/40 rounded px-1 py-1.5 text-xs text-white"></select>
+                <select id="doseRefMonth" onchange="saveCo60Settings()" class="bg-slate-900 border border-cyan-500/40 rounded px-1 py-1.5 text-xs text-white"></select>
+                <select id="doseRefYearBE" onchange="saveCo60Settings()" class="bg-slate-900 border border-cyan-500/40 rounded px-1 py-1.5 text-xs text-white"></select>
+              </div>
+            </div>
+
+            <div class="md:col-span-7">
+              <label class="block text-xs text-slate-300 mb-1">โหลด / บันทึก Preset ชุด Source & Dose Rate รวม</label>
+              <div class="flex gap-1.5">
+                <select id="presetSelect" onchange="applySelectedPreset()" class="flex-1 bg-slate-900 border border-cyan-500/40 rounded px-2 py-1.5 text-xs text-white">
+                  <option value="">-- เลือก Preset ที่บันทึกไว้ --</option>
+                </select>
+                <button type="button" onclick="saveNewPreset()" class="px-2.5 py-1.5 rounded bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-200 border border-cyan-400/50 text-xs font-bold shrink-0">
+                  + บันทึก Preset
+                </button>
+                <button type="button" onclick="deleteSelectedPreset()" class="px-2 py-1.5 rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-500/40 text-xs shrink-0" title="ลบ Preset ที่เลือก">
+                  🗑
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end bg-slate-900/80 border border-slate-800 rounded-lg p-3">
+            <div class="sm:col-span-7">
+              <label class="block text-[11px] font-mono-tech text-slate-300 mb-1.5">ติ๊กถูกเลือกชุด Source ที่ Mapping:</label>
+              <div class="grid grid-cols-6 gap-1.5" id="mappingSourceCheckGrid"></div>
+            </div>
+
+            <div class="sm:col-span-5">
+              <label class="block text-[11px] font-mono-tech text-cyan-300 mb-1.5">Dose Rate รวม ณ วัน Mapping (/นาที):</label>
+              <div class="relative">
+                <input type="number" step="any" id="combinedRefDoseRateInput" oninput="handleCombinedDoseInput()"
+                  class="w-full bg-slate-950 border border-cyan-400/50 rounded px-3 py-1.5 font-mono-tech text-sm font-bold text-cyan-200 focus:outline-none focus:border-cyan-300" />
+                <span id="combinedDoseUnitLabel" class="absolute right-2.5 top-1.5 text-xs font-mono-tech text-cyan-400">kGy/m</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-2 flex flex-wrap items-center justify-between text-[11px] font-mono-tech text-slate-400">
+            <span id="activeMappingPatternText">ชุดที่เลือก: S1+S2+S3+S4+S5+S6 (6 Sources)</span>
+            <span id="presetMatchStatusText" class="text-emerald-400">บันทึกเข้ากับชุด Source นี้แล้ว</span>
+          </div>
+          <div id="configFileStatusText" class="mt-1.5 font-mono-tech text-[11px] text-purple-300">
+            ค่า Co-60 & Preset บันทึกในเบราว์เซอร์อัตโนมัติ (สามารถ Export/Import ไฟล์ .JSON เพื่อย้ายเครื่องหรือสำรองข้อมูลได้)
+          </div>
+        </div>
+      </div>
+
+      <div class="xl:col-span-5 bg-gradient-to-br from-purple-950/35 via-slate-950/90 to-cyan-950/30 border border-purple-400/40 rounded-lg p-4 flex flex-col justify-between">
+        <div>
+          <div class="text-xs font-mono-tech text-cyan-300 uppercase mb-3 flex items-center justify-between">
+            <span>ค่าปัจจุบัน REAL-TIME (CURRENT STATUS)</span>
+            <span class="w-2 h-2 rounded-full bg-purple-400 animate-ping"></span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div class="bg-slate-950/90 border border-purple-500/30 rounded p-3">
+              <div class="text-[11px] text-slate-400">ความแรงรังสี Co-60 ปัจจุบัน</div>
+              <div id="currentCurieDisplay" class="font-orbitron text-xl md:text-2xl font-bold text-purple-300 mt-1">0.00 Ci</div>
+              <div id="elapsedCo60DaysDisplay" class="font-mono-tech text-[10px] text-slate-400 mt-1">เทียบวันอ้างอิง Co-60: 0 วัน</div>
+            </div>
+
+            <div class="bg-slate-950/90 border border-cyan-500/30 rounded p-3">
+              <div class="text-[11px] text-slate-400">Dose Rate รวมปัจจุบัน (ตามชุด Source)</div>
+              <div id="activeCurrentDoseRateDisplay" class="font-orbitron text-xl md:text-2xl font-bold text-cyan-300 mt-1">0.0000 /นาที</div>
+              <div id="elapsedDoseDaysDisplay" class="font-mono-tech text-[10px] text-slate-400 mt-1">เทียบวัน Mapping: 0 วัน</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-950/80 border border-slate-800 rounded p-3">
+          <div class="text-[10px] font-mono-tech text-slate-400 uppercase mb-1">RUNNING DOSE RATE MAPPING SUMMARY:</div>
+          <div id="liveRunningSourceDoseInfo" class="text-xs text-slate-300 font-mono-tech">
+            สถานะปัจจุบัน: รอสัญญาณเดินเครื่อง (เมื่อ Source ที่เปิดตรงกับ Preset จะคำนวณ Dose Rate รวมอัตโนมัติ)
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN TELEMETRY CONSOLE -->
+  <section class="grid grid-cols-1 xl:grid-cols-12 gap-5 mb-5 no-print">
+    <div id="mainStateCard" class="xl:col-span-5 hud-panel rounded-lg p-5 flex flex-col justify-between transition-all duration-300">
+      <div>
+        <div class="flex items-center justify-between border-b border-cyan-500/20 pb-3 mb-4">
+          <span class="text-xs font-mono-tech tracking-widest text-cyan-400 uppercase">CORE OPERATIONAL STATUS</span>
+          <span id="activeSourceSummary" class="text-xs font-mono-tech px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-600">
+            0/6 SOURCES ACTIVE
+          </span>
+        </div>
+
+        <div class="my-2">
+          <div id="currentStateLabel" class="text-3xl md:text-4xl font-orbitron font-black tracking-wider text-slate-300">
+            STANDBY / STOP
+          </div>
+          <p id="currentStateSub" class="text-sm text-slate-400 mt-1">
+            ไม่มีสัญญาณหลอดไฟ Source Up • พร้อมสำหรับโหลดงานหรือซ่อมบำรุง
+          </p>
+        </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-3">
+          <div class="bg-slate-950/90 border border-cyan-500/30 rounded-lg p-3.5">
+            <div class="text-[10px] font-mono-tech text-cyan-400/80 uppercase">SESSION ELAPSED TIME</div>
+            <div id="liveSessionTimer" class="font-orbitron text-xl md:text-2xl font-bold text-cyan-300 tracking-wider mt-1">
+              00:00:00
+            </div>
+            <div id="sessionStartDisplay" class="text-[10px] text-slate-400 mt-1">เริ่มรอบ: -</div>
+          </div>
+
+          <div class="bg-slate-950/90 border border-emerald-500/30 rounded-lg p-3.5">
+            <div class="text-[10px] font-mono-tech text-emerald-400/90 uppercase">LIVE SESSION DOSE</div>
+            <div id="liveSessionDose" class="font-orbitron text-xl md:text-2xl font-bold text-emerald-300 tracking-wider mt-1">
+              0.0000 kGy
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1">เวลา × Dose Rate รวมปัจจุบัน</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-5 pt-4 border-t border-slate-800">
+        <div class="flex items-start gap-3 p-3.5 rounded-lg bg-rose-950/20 border border-rose-500/30">
+          <input type="checkbox" id="breakdownCheckbox" class="scifi-checkbox mt-0.5 shrink-0" onchange="handleBreakdownToggle()" />
+          <div class="flex-1">
+            <div class="flex items-center justify-between flex-wrap gap-1">
+              <label for="breakdownCheckbox" class="font-bold text-rose-300 cursor-pointer text-sm md:text-base">
+                บันทึกเวลา BREAKDOWN / ซ่อมบำรุง (PM)
+              </label>
+              <span id="interlockBadge" class="text-[11px] font-mono-tech px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                INTERLOCK: UNLOCKED (พร้อมกด)
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">
+              * กดติ๊กถูกได้เฉพาะตอน Source ดับทุกดวงเท่านั้น หากตรวจพบ Source Up แม้แต่ดวงเดียว ระบบจะล็อกปุ่มและปลดติ๊กถูกออกอัตโนมัติทันที
+            </p>
+            <input type="text" id="breakdownReasonInput" placeholder="ระบุสาเหตุการซ่อมบำรุง / PM (เช่น ตรวจเช็กระบบนิวแมติกส์, เปลี่ยนซีล)..."
+              class="mt-2.5 w-full bg-slate-950/90 border border-rose-500/40 rounded px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400"
+              oninput="updateBreakdownReason()" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="xl:col-span-7 hud-panel rounded-lg p-5 flex flex-col justify-between">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-500/20 pb-3 mb-4">
+        <div>
+          <span class="text-xs font-mono-tech tracking-widest text-cyan-400 uppercase">SOURCE ARRAY TELEMETRY (6 INDEPENDENT RACKS)</span>
+          <h2 class="text-base font-bold text-white">สถานะหลอดไฟ Source Up แยกอิสระ (ทำงาน 1 Source ขึ้นไป = นับเวลาเดินเครื่องและคำนวณโดสทันที)</h2>
+        </div>
+        <div id="simControlHint" class="text-xs font-mono-tech text-amber-300 bg-amber-950/50 border border-amber-500/40 px-2.5 py-1 rounded">
+          คลิกที่ Source 1-6 ด้านล่างเพื่อจำลองเปิด/ปิดไฟ
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5 my-auto">
+        <div id="sourceGrid" class="contents"></div>
+      </div>
+
+      <div id="demoQuickBar" class="mt-4 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
+        <span class="text-xs text-slate-400 font-mono-tech">SIMULATOR PRESETS:</span>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="setDemoSources([1,0,0,0,0,0])" class="px-2.5 py-1 text-xs rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 transition">เปิดเฉพาะ S1</button>
+          <button onclick="setDemoSources([1,1,1,0,0,0])" class="px-2.5 py-1 text-xs rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 transition">เปิด S1, S2, S3</button>
+          <button onclick="setDemoSources([1,1,1,1,1,1])" class="px-2.5 py-1 text-xs rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 transition">เปิดเต็ม 6 Sources</button>
+          <button onclick="setDemoSources([0,0,0,0,0,0])" class="px-2.5 py-1 text-xs rounded bg-slate-700/50 hover:bg-slate-700 text-slate-200 border border-slate-500/50 transition">ปิดทุก Source (Stop)</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- แถบตัวกรองช่วงเวลา & EXPORT -->
+  <section class="hud-panel rounded-lg p-4 mb-5 no-print">
+    <div class="flex flex-col xl:flex-row items-start xl:items-end justify-between gap-4">
+      <div class="flex flex-wrap items-end gap-3 w-full xl:w-auto">
+        <div>
+          <label class="block text-[11px] font-mono-tech text-cyan-400 uppercase mb-1">รูปแบบช่วงเวลาวิเคราะห์ & รายงาน</label>
+          <select id="filterModeSelect" onchange="handleFilterModeChange()" class="bg-slate-950 border border-cyan-500/40 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400">
+            <option value="fiscal">ตามปีงบประมาณราชการ & ไตรมาส (Q1-Q4)</option>
+            <option value="custom">เลือกช่วงวันที่เอง (วัน/เดือน/ปี พ.ศ.)</option>
+            <option value="all">แสดงข้อมูลทั้งหมดในระบบ</option>
+          </select>
+        </div>
+
+        <div id="customDateFilterBox" class="hidden flex-wrap items-end gap-2">
+          <div>
+            <label class="block text-[11px] font-mono-tech text-slate-400 mb-1">ตั้งแต่วันที่ (พ.ศ.)</label>
+            <div class="flex gap-1">
+              <select id="startDay" onchange="refreshDashboard()" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-white"></select>
+              <select id="startMonth" onchange="refreshDashboard()" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-white"></select>
+              <select id="startYearBE" onchange="refreshDashboard()" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-white"></select>
+            </div>
+          </div>
+          <span class="pb-2 text-cyan-400 font-bold">ถึง</span>
+          <div>
+            <label class="block text-[11px] font-mono-tech text-slate-400 mb-1">ถึงวันที่ (พ.ศ.)</label>
+            <div class="flex gap-1">
+              <select id="endDay" onchange="refreshDashboard()" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-white"></select>
+              <select id="endMonth" onchange="refreshDashboard()" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-white"></select>
+              <select id="endYearBE" onchange="refreshDashboard()" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-white"></select>
+            </div>
+          </div>
+        </div>
+
+        <div id="fiscalFilterBox" class="flex flex-wrap items-end gap-2">
+          <div>
+            <label class="block text-[11px] font-mono-tech text-slate-400 mb-1">ปีงบประมาณ (พ.ศ.)</label>
+            <select id="fiscalYearSelect" onchange="refreshDashboard()" class="bg-slate-950 border border-slate-700 rounded px-3 py-2 text-sm text-white"></select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono-tech text-slate-400 mb-1">ไตรมาส (เริ่ม ต.ค.)</label>
+            <select id="fiscalQuarterSelect" onchange="refreshDashboard()" class="bg-slate-950 border border-slate-700 rounded px-3 py-2 text-sm text-white">
+              <option value="ALL">ทั้งปีงบประมาณ (Q1 - Q4)</option>
+              <option value="1">ไตรมาส 1 (ต.ค. - ธ.ค.)</option>
+              <option value="2">ไตรมาส 2 (ม.ค. - มี.ค.)</option>
+              <option value="3">ไตรมาส 3 (เม.ย. - มิ.ย.)</option>
+              <option value="4">ไตรมาส 4 (ก.ค. - ก.ย.)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2.5">
+        <button onclick="exportArduinoFormatLogCSV()" class="px-4 py-2 rounded bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-400/50 text-sm font-bold flex items-center gap-2 transition">
+          <span>⬇ Export Log (.CSV)</span>
+        </button>
+        <button onclick="printPdfReport()" class="px-4 py-2 rounded bg-cyan-500/25 hover:bg-cyan-500/40 text-cyan-200 border border-cyan-400/60 text-sm font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(0,240,255,0.2)] transition">
+          <span>🖨 สร้างรายงาน PDF (รายไตรมาส)</span>
+        </button>
+        <button onclick="seedSampleData()" class="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-xs transition">
+          + ข้อมูลตัวอย่าง
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- KPI SUMMARY CARDS -->
+  <section id="kpiSummaryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
+    <div class="hud-panel rounded-lg p-4">
+      <div class="text-[11px] font-mono-tech text-emerald-400 uppercase">TOTAL RUNNING TIME</div>
+      <div id="kpiRunTime" class="text-xl md:text-2xl font-orbitron font-bold text-white mt-1">0.00 ชม.</div>
+      <div id="kpiRunSub" class="text-xs text-slate-400 mt-1">0 นาที (0 รอบ)</div>
+    </div>
+
+    <div class="hud-panel rounded-lg p-4 border-purple-500/50">
+      <div class="text-[11px] font-mono-tech text-purple-300 uppercase">TOTAL ABSORBED DOSE</div>
+      <div id="kpiTotalDose" class="text-xl md:text-2xl font-orbitron font-bold text-purple-300 mt-1">0.00 kGy</div>
+      <div id="kpiTotalDoseSub" class="text-xs text-slate-400 mt-1">ปริมาณรังสีรวมที่ฉายขณะเดินเครื่อง</div>
+    </div>
+
+    <div class="hud-panel rounded-lg p-4">
+      <div class="text-[11px] font-mono-tech text-rose-400 uppercase">BREAKDOWN / PM TIME</div>
+      <div id="kpiBreakTime" class="text-xl md:text-2xl font-orbitron font-bold text-rose-400 mt-1">0.00 ชม.</div>
+      <div id="kpiBreakSub" class="text-xs text-slate-400 mt-1">0 นาที (0 ครั้ง)</div>
+    </div>
+
+    <div class="hud-panel rounded-lg p-4">
+      <div class="text-[11px] font-mono-tech text-amber-400 uppercase">OPERATING VS BREAKDOWN RATIO</div>
+      <div id="kpiAvailability" class="text-xl md:text-2xl font-orbitron font-bold text-amber-300 mt-1">100.0%</div>
+      <div class="text-xs text-slate-400 mt-1">สัดส่วนเดินเครื่องเทียบเวลาทั้งหมดในรายงาน</div>
+    </div>
+  </section>
+
+  <!-- กราฟคู่รายไตรมาสสำหรับรายงาน PDF -->
+  <section id="printChartsSection">
+    <div class="print-chart-box">
+      <div class="text-xs font-bold text-slate-800 mb-1.5" id="printTimeChartTitle">สรุปเวลาเดินเครื่อง และเวลา Breakdown / PM รายไตรมาส (ชั่วโมง)</div>
+      <img id="printTimeChartImg" alt="กราฟเวลาเดินเครื่องและ Breakdown รายไตรมาส" />
+    </div>
+    <div class="print-chart-box">
+      <div class="text-xs font-bold text-slate-800 mb-1.5" id="printDoseChartTitle">ปริมาณโดสที่ฉายขณะเดินเครื่อง รายไตรมาส</div>
+      <img id="printDoseChartImg" alt="กราฟปริมาณโดสที่ฉายขณะเดินเครื่องรายไตรมาส" />
+    </div>
+  </section>
+
+  <!-- ตารางผลรวมตัวเลขแต่ละไตรมาส + ผลรวมทั้ง 4 ไตรมาสสำหรับรายงาน PDF -->
+  <section id="printQuarterlyTableSection">
+    <div class="text-xs font-bold text-slate-800 mb-1.5" id="printQuarterlyTableTitle">
+      ตารางสรุปผลรวมรายไตรมาสและผลรวมทั้ง 4 ไตรมาส ปีงบประมาณ -
+    </div>
+    <table class="print-q-table text-slate-900">
+      <thead>
+        <tr>
+          <th class="text-left">ไตรมาส</th>
+          <th class="text-right">จำนวนชั่วโมงเดินเครื่อง (ชม.)</th>
+          <th class="text-right">จำนวนชั่วโมง Breakdown (ชม.)</th>
+          <th class="text-right" id="printDoseColHeader">จำนวนโดสที่ฉาย (kGy)</th>
+        </tr>
+      </thead>
+      <tbody id="printQuarterlyTableBody"></tbody>
+    </table>
+  </section>
+
+  <!-- ส่วนลงนามสำหรับรายงาน PDF เท่านั้น -->
+  <section class="hidden print-signatures text-center text-sm text-slate-900">
+    <div>
+      <div class="border-b border-dotted border-slate-700 w-56 mx-auto mb-2 h-9"></div>
+      <div>(......................................................)</div>
+      <div class="font-bold mt-1">ผู้บันทึกข้อมูล / เจ้าหน้าที่เดินเครื่อง</div>
+      <div class="text-xs text-slate-600 mt-0.5">วันที่ ........../........../..........</div>
+    </div>
+    <div>
+      <div class="border-b border-dotted border-slate-700 w-56 mx-auto mb-2 h-9"></div>
+      <div>(......................................................)</div>
+      <div class="font-bold mt-1">ผู้ตรวจสอบ / หัวหน้างาน</div>
+      <div class="text-xs text-slate-600 mt-0.5">วันที่ ........../........../..........</div>
+    </div>
+  </section>
+
+  <!-- CHARTS SECTION (หน้าจอหลัก) -->
+  <section class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-5 no-print">
+    <div class="lg:col-span-5 hud-panel rounded-lg p-4">
+      <h3 class="text-sm font-orbitron font-bold text-cyan-300 tracking-wider mb-3">
+        TIME DISTRIBUTION // เดินเครื่อง VS BREAKDOWN
+      </h3>
+      <div class="h-64 flex items-center justify-center">
+        <canvas id="statusDoughnutChart"></canvas>
+      </div>
+    </div>
+
+    <div class="lg:col-span-7 hud-panel rounded-lg p-4">
+      <h3 class="text-sm font-orbitron font-bold text-cyan-300 tracking-wider mb-3">
+        SOURCE TELEMETRY // ชั่วโมงสะสมและโดสสะสมแยกตาม SOURCE 1 - 6
+      </h3>
+      <div class="h-64">
+        <canvas id="sourceBarChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOG HISTORY TABLE -->
+  <section class="hud-panel rounded-lg p-4 no-print">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <div>
+        <h3 class="text-base font-orbitron font-bold text-white tracking-wider">TELEMETRY & DOSIMETRY REPORT LOGS</h3>
+        <p id="activeFilterDescription" class="text-xs text-cyan-400 mt-0.5">กำลังแสดงข้อมูลทั้งหมด (ไม่รวมเวลาหยุดเครื่อง)</p>
+      </div>
+      <button onclick="clearAllLogs()" class="px-3 py-1 text-xs rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-500/40 transition">
+        ล้างประวัติ Log ทั้งหมด
+      </button>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-cyan-500/30 text-cyan-300 font-mono-tech text-xs uppercase bg-slate-950/70">
+            <th class="py-2.5 px-2.5">ลำดับ</th>
+            <th class="py-2.5 px-2.5">สถานะ</th>
+            <th class="py-2.5 px-2.5">ชุด Source</th>
+            <th class="py-2.5 px-2.5">เวลาเริ่มต้น (พ.ศ.)</th>
+            <th class="py-2.5 px-2.5">เวลาสิ้นสุด (พ.ศ.)</th>
+            <th class="py-2.5 px-2.5 text-right">ระยะเวลา (นาที)</th>
+            <th class="py-2.5 px-2.5 text-right text-purple-300">Dose Rate รวม</th>
+            <th class="py-2.5 px-2.5 text-right text-emerald-300">ปริมาณรังสีที่ฉาย</th>
+            <th class="py-2.5 px-2.5">ปีงบ / ไตรมาส</th>
+            <th class="py-2.5 px-2.5">หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody id="logTableBody" class="divide-y divide-slate-800/80"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <script>
+    const STORAGE_KEY = 'gamma_6src_telemetry_logs_v5';
+    const CO60_SETTINGS_KEY = 'gamma_co60_combined_mapping_v1';
+    const PRESETS_STORAGE_KEY = 'gamma_combined_dose_presets_v1';
+
+    const CO60_HALF_LIFE_YEARS = 5.2714;
+    const SECONDS_PER_YEAR = 365.2425 * 86400;
+    const CO60_HALF_LIFE_MS = CO60_HALF_LIFE_YEARS * SECONDS_PER_YEAR * 1000;
+    const CO60_LAMBDA_MS = Math.LN2 / CO60_HALF_LIFE_MS;
+
+    const THAI_MONTHS = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    const THAI_MONTHS_SHORT = [
+      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+    ];
+
+    let co60Config = {
+      initialCurie: 150000,
+      co60RefDay: 1,
+      co60RefMonth: 9,
+      co60RefYearBE: 2568,
+
+      doseRefDay: 1,
+      doseRefMonth: 9,
+      doseRefYearBE: 2569,
+
+      unit: 'kGy',
+      selectedSources: [1, 1, 1, 1, 1, 1],
+      refCombinedDoseRatePerMin: 0.5100
+    };
+
+    let presets = [
+      { id: 'p-6src', name: 'เดินเครื่องครบ 6 Source', sources: [1,1,1,1,1,1], combinedRatePerMin: 0.5100 },
+      { id: 'p-5src', name: 'เดินเครื่อง 5 Source (S1-S5)', sources: [1,1,1,1,1,0], combinedRatePerMin: 0.4250 },
+      { id: 'p-4src', name: 'เดินเครื่อง 4 Source (S1-S4)', sources: [1,1,1,1,0,0], combinedRatePerMin: 0.3400 }
+    ];
+
+    let isSimulationMode = true;
+    let autoWriteArduinoEnabled = false;
+    let liveStatusPollTimer = null;
+    let currentSources = [0, 0, 0, 0, 0, 0];
+    let isBreakdownChecked = false;
+    let breakdownReason = '';
+    let lastAcOk = true;
+
+    let activeSession = {
+      status: 'STOP',
+      sources: [0, 0, 0, 0, 0, 0],
+      startTimeMs: Date.now(),
+      note: 'เริ่มต้นระบบมอนิเตอร์'
+    };
+
+    let logs = [];
+    let doughnutChart = null;
+    let barChart = null;
+
+    const CRC32_TABLE = (() => {
+      const tbl = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) {
+          c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        }
+        tbl[i] = c >>> 0;
+      }
+      return tbl;
+    })();
+
+    function calcUtf8Crc32Hex(str) {
+      const bytes = new TextEncoder().encode(str);
+      let crc = 0xFFFFFFFF;
+      for (let i = 0; i < bytes.length; i++) {
+        crc = CRC32_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+      }
+      return ((crc ^ 0xFFFFFFFF) >>> 0).toString(16).toUpperCase().padStart(8, '0');
+    }
+
+    function setLogEditorMsg(text, isError = false) {
+      const el = document.getElementById('logEditorStatusMsg');
+      el.textContent = text;
+      el.className = `mt-2 font-mono-tech text-[11px] ${isError ? 'text-rose-400' : 'text-emerald-300'}`;
+    }
+
+    function setConfigFileStatus(text, isError = false) {
+      const el = document.getElementById('configFileStatusText');
+      if (!el) return;
+      el.textContent = text;
+      el.className = `mt-1.5 font-mono-tech text-[11px] ${isError ? 'text-rose-400' : 'text-emerald-300'}`;
+    }
+
+    function getArduinoBaseUrl() {
+      const raw = (document.getElementById('arduinoEndpointInput')?.value || 'http://192.168.10.1').trim();
+      return raw.replace(/\/+$/, '');
+    }
+
+    async function syncThaiTimeToArduino() {
+      if (isSimulationMode) return;
+      const baseUrl = getArduinoBaseUrl();
+      if (!baseUrl) return;
+      const epochSec = Math.floor(Date.now() / 1000);
+      try {
+        await fetch(`${baseUrl}/time`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ epoch: epochSec, tz_offset_hours: 7 })
+        });
+      } catch (err) {
+        // เงียบไว้หากอยู่นอกเครือข่าย LAN ของบอร์ด
+      }
+    }
+
+    async function postModeToArduino(mode, reason = '') {
+      if (isSimulationMode) return;
+      const baseUrl = getArduinoBaseUrl();
+      if (!baseUrl) return;
+      try {
+        await fetch(`${baseUrl}/mode`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode, reason })
+        });
+      } catch (err) {
+        // เงียบไว้หากอยู่นอกเครือข่าย LAN ของบอร์ด
+      }
+    }
+
+    async function pollLiveStatusFromArduino() {
+      if (isSimulationMode) return;
+      const baseUrl = getArduinoBaseUrl();
+      if (!baseUrl) return;
+
+      try {
+        const res = await fetch(`${baseUrl}/status`, { method: 'GET', cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const parsedSources = Array.isArray(data.sources) && data.sources.length === 6
+          ? data.sources.map(v => (Number(v) === 1 ? 1 : 0))
+          : [0, 0, 0, 0, 0, 0];
+
+        const acOk = typeof data.ac_ok === 'boolean' ? data.ac_ok : true;
+        const anySourceUp = parsedSources.some(v => v === 1);
+
+        if (!acOk && !anySourceUp) {
+          isBreakdownChecked = true;
+          document.getElementById('breakdownCheckbox').checked = true;
+          if (!breakdownReason.trim()) {
+            breakdownReason = 'AC_LOST_BREAKDOWN';
+            document.getElementById('breakdownReasonInput').value = breakdownReason;
+          }
+        } else if (anySourceUp) {
+          isBreakdownChecked = false;
+          document.getElementById('breakdownCheckbox').checked = false;
+        } else if (acOk && !anySourceUp && activeSession.status === 'BREAKDOWN' && !document.getElementById('breakdownCheckbox').checked) {
+          isBreakdownChecked = false;
+        }
+
+        evaluateSystemState(parsedSources, acOk);
+      } catch (err) {
+        // เงียบไว้หากอยู่นอกเครือข่าย LAN ของบอร์ด
+      }
+    }
+
+    function startLiveArduinoPolling() {
+      stopLiveArduinoPolling();
+      syncThaiTimeToArduino();
+      pollLiveStatusFromArduino();
+      liveStatusPollTimer = setInterval(pollLiveStatusFromArduino, 1000);
+    }
+
+    function stopLiveArduinoPolling() {
+      if (liveStatusPollTimer) {
+        clearInterval(liveStatusPollTimer);
+        liveStatusPollTimer = null;
+      }
+    }
+
+    async function fetchLogsFromArduinoEndpoint() {
+      const baseUrl = getArduinoBaseUrl();
+      if (!baseUrl) return;
+      setLogEditorMsg(`[FETCHING] กำลังดึง /LOGS.CSV จาก ${baseUrl} ...`);
+      try {
+        const res = await fetch(`${baseUrl}/logs`, { method: 'GET', cache: 'no-store' });
+        if (!res.ok) {
+          setLogEditorMsg(`[HTTP ${res.status}] ดึง Log จาก Arduino ไม่สำเร็จ`, true);
+          return;
+        }
+        const csvText = await res.text();
+        document.getElementById('arduinoLogEditorTextarea').value = csvText;
+        importLogFromCsvString(csvText, 'Arduino-SD');
+      } catch (err) {
+        setLogEditorMsg(`[OFFLINE] เชื่อมต่อ ${baseUrl} ไม่ได้ — ตรวจสอบสาย LAN/IP หรือใช้ Import ไฟล์ .CSV`, true);
+      }
+    }
+
+    function exportConfigAndPresetsJSON() {
+      const payload = {
+        schema: 'GAMMA_6SRC_CALIB_PRESETS_V1',
+        exportedAtThai: getThaiDateParts(Date.now()).fullStr,
+        co60Config: {
+          initialCurie: co60Config.initialCurie,
+          co60RefDay: co60Config.co60RefDay,
+          co60RefMonth: co60Config.co60RefMonth,
+          co60RefYearBE: co60Config.co60RefYearBE,
+          doseRefDay: co60Config.doseRefDay,
+          doseRefMonth: co60Config.doseRefMonth,
+          doseRefYearBE: co60Config.doseRefYearBE,
+          unit: co60Config.unit,
+          selectedSources: [...co60Config.selectedSources],
+          refCombinedDoseRatePerMin: co60Config.refCombinedDoseRatePerMin
+        },
+        presets: presets.map(p => ({
+          id: p.id,
+          name: p.name,
+          sources: [...p.sources],
+          combinedRatePerMin: parseFloat(p.combinedRatePerMin) || 0
+        }))
+      };
+
+      const jsonStr = JSON.stringify(payload, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CALIB_PRESETS_${getThaiDateParts(Date.now()).dateStr.replace(/\//g, '-')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setConfigFileStatus(`[EXPORTED JSON] บันทึกไฟล์ Config & Presets (${presets.length} รายการ) เรียบร้อยแล้ว`);
+    }
+
+    function applyImportedConfigObject(data, sourceName = 'JSON') {
+      const rawCfg = data.co60Config || data;
+      const rawPresets = Array.isArray(data.presets) ? data.presets : [];
+
+      if (rawCfg.initialCurie !== undefined) {
+        co60Config.initialCurie = parseFloat(rawCfg.initialCurie) || 0;
+      }
+      if (rawCfg.co60RefDay !== undefined) co60Config.co60RefDay = parseInt(rawCfg.co60RefDay, 10) || 1;
+      if (rawCfg.co60RefMonth !== undefined) co60Config.co60RefMonth = parseInt(rawCfg.co60RefMonth, 10) || 0;
+      if (rawCfg.co60RefYearBE !== undefined) co60Config.co60RefYearBE = parseInt(rawCfg.co60RefYearBE, 10) || 2568;
+
+      if (rawCfg.doseRefDay !== undefined) co60Config.doseRefDay = parseInt(rawCfg.doseRefDay, 10) || 1;
+      if (rawCfg.doseRefMonth !== undefined) co60Config.doseRefMonth = parseInt(rawCfg.doseRefMonth, 10) || 0;
+      if (rawCfg.doseRefYearBE !== undefined) co60Config.doseRefYearBE = parseInt(rawCfg.doseRefYearBE, 10) || 2569;
+
+      if (rawCfg.unit === 'Gy' || rawCfg.unit === 'kGy') {
+        co60Config.unit = rawCfg.unit;
+      }
+      if (Array.isArray(rawCfg.selectedSources) && rawCfg.selectedSources.length === 6) {
+        co60Config.selectedSources = rawCfg.selectedSources.map(v => (Number(v) === 1 ? 1 : 0));
+      }
+      if (rawCfg.refCombinedDoseRatePerMin !== undefined) {
+        co60Config.refCombinedDoseRatePerMin = parseFloat(rawCfg.refCombinedDoseRatePerMin) || 0;
+      }
+
+      if (rawPresets.length > 0) {
+        presets = rawPresets.map((p, i) => {
+          const sArr = Array.isArray(p.sources) && p.sources.length === 6
+            ? p.sources.map(v => (Number(v) === 1 ? 1 : 0))
+            : [1, 1, 1, 1, 1, 1];
+          return {
+            id: p.id || `imp-preset-${Date.now()}-${i}`,
+            name: String(p.name || `Preset ${i + 1}`),
+            sources: sArr,
+            combinedRatePerMin: parseFloat(p.combinedRatePerMin) || 0
+          };
+        });
+        localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(presets));
+      }
+
+      document.getElementById('initialCurieInput').value = co60Config.initialCurie;
+      document.getElementById('co60RefDay').value = co60Config.co60RefDay;
+      document.getElementById('co60RefMonth').value = co60Config.co60RefMonth;
+      document.getElementById('co60RefYearBE').value = co60Config.co60RefYearBE;
+
+      document.getElementById('doseRefDay').value = co60Config.doseRefDay;
+      document.getElementById('doseRefMonth').value = co60Config.doseRefMonth;
+      document.getElementById('doseRefYearBE').value = co60Config.doseRefYearBE;
+
+      document.getElementById('doseUnitSelect').value = co60Config.unit;
+      document.getElementById('combinedRefDoseRateInput').value = co60Config.refCombinedDoseRatePerMin;
+
+      renderMappingSourceCheckboxes();
+      renderPresetDropdown();
+      saveCo60Settings();
+      setConfigFileStatus(`[IMPORTED ${sourceName}] โหลดค่า Co-60, วัน Mapping และ Preset (${presets.length} รายการ) สำเร็จแล้ว`);
+    }
+
+    function handleConfigJsonUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || '{}'));
+          applyImportedConfigObject(parsed, file.name);
+        } catch (err) {
+          setConfigFileStatus(`[ERROR] ไฟล์ ${file.name} ไม่ใช่ JSON ที่ถูกต้อง`, true);
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+      event.target.value = '';
+    }
+
+    function getThaiDateParts(ms) {
+      const dateObj = new Date(ms);
+      const formatter = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Bangkok',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+
+      const partsMap = {};
+      formatter.formatToParts(dateObj).forEach(p => {
+        if (p.type !== 'literal') partsMap[p.type] = p.value;
+      });
+
+      const yearAD = parseInt(partsMap.year, 10);
+      const yearBE = yearAD + 543;
+      const monthIndex = parseInt(partsMap.month, 10) - 1;
+      const day = parseInt(partsMap.day, 10);
+      const hours = partsMap.hour;
+      const minutes = partsMap.minute;
+      const seconds = partsMap.second;
+
+      const fiscalYearBE = (monthIndex >= 9) ? yearBE + 1 : yearBE;
+      let fiscalQuarter = 1;
+      if (monthIndex >= 9 && monthIndex <= 11) fiscalQuarter = 1;
+      else if (monthIndex >= 0 && monthIndex <= 2) fiscalQuarter = 2;
+      else if (monthIndex >= 3 && monthIndex <= 5) fiscalQuarter = 3;
+      else fiscalQuarter = 4;
+
+      return {
+        yearAD, yearBE, monthIndex, day, hours, minutes, seconds,
+        fiscalYearBE, fiscalQuarter,
+        dateStr: `${String(day).padStart(2, '0')}/${String(monthIndex + 1).padStart(2, '0')}/${yearBE}`,
+        timeStr: `${hours}:${minutes}:${seconds}`,
+        isoStr: `${yearAD}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')} ${hours}:${minutes}:${seconds}`,
+        fullStr: `${String(day).padStart(2, '0')}/${String(monthIndex + 1).padStart(2, '0')}/${yearBE} ${hours}:${minutes}:${seconds}`
+      };
+    }
+
+    function toggleAutoWriteToArduino() {
+      autoWriteArduinoEnabled = !autoWriteArduinoEnabled;
+      const badge = document.getElementById('autoArduinoStatusBadge');
+      const btn = document.getElementById('toggleAutoArduinoBtn');
+      const fb = document.getElementById('autoArduinoLogFeedback');
+
+      if (autoWriteArduinoEnabled) {
+        badge.textContent = 'AUTO WRITE: ON (ACTIVE)';
+        badge.className = 'text-xs font-mono-tech px-2.5 py-0.5 rounded bg-emerald-950 border border-emerald-400/60 text-emerald-300';
+        btn.textContent = '⏹ ปิดเขียน Log อัตโนมัติ';
+        fb.textContent = 'เปิดโหมดเขียน Log ลง Arduino อัตโนมัติแล้ว — เมื่อจบรอบการทำงานระบบจะส่งข้อมูลเวลาจริงไปทันที';
+        fb.className = 'mt-2 font-mono-tech text-[11px] text-emerald-300';
+      } else {
+        badge.textContent = 'AUTO WRITE: OFF (MANUAL / SIM)';
+        badge.className = 'text-xs font-mono-tech px-2.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-amber-300';
+        btn.textContent = '⚡ เปิดเขียน Log อัตโนมัติ';
+        fb.textContent = 'ปิดโหมดเขียน Log ลง Arduino อัตโนมัติแล้ว';
+        fb.className = 'mt-2 font-mono-tech text-[11px] text-slate-400';
+      }
+    }
+
+    function sanitizeArduinoReason(rawReason) {
+      return String(rawReason || 'AUTO_LOG')
+        .replace(/,/g, ' ')
+        .replace(/[\r\n]+/g, ' ')
+        .trim()
+        .slice(0, 28) || 'AUTO_LOG';
+    }
+
+    function buildArduinoCsvLineFromLogItem(item, includeSeq = false, seqNumber = 1) {
+      const mode = item.status === 'BREAKDOWN' ? 'BREAKDOWN' : 'RUNNING';
+      const srcStr = item.sources.map(v => (v === 1 ? '1' : '0')).join('-');
+      const acStr = item.acStatus === 'AC_FAIL' ? 'AC_FAIL' : 'AC_OK';
+      const startIso = getThaiDateParts(item.startTimeMs).isoStr;
+      const endIso = getThaiDateParts(item.endTimeMs).isoStr;
+      const durStr = Number(item.durationMinutes || 0).toFixed(2);
+      const reasonStr = sanitizeArduinoReason(item.note);
+
+      if (!includeSeq) {
+        return `${mode},${srcStr},${acStr},${startIso},${endIso},${durStr},${reasonStr}`;
+      }
+
+      const payload = `${seqNumber}|${mode}|${srcStr}|${acStr}|${startIso}|${endIso}|${durStr}|${reasonStr}`;
+      const crc = calcUtf8Crc32Hex(payload);
+      return `${seqNumber},${mode},${srcStr},${acStr},${startIso},${endIso},${durStr},${reasonStr},${crc}`;
+    }
+
+    async function postLogLineToArduino(csvPayload, targetLogItem = null) {
+      const baseUrl = getArduinoBaseUrl();
+      const fb = document.getElementById('autoArduinoLogFeedback');
+      if (!baseUrl) return;
+
+      try {
+        const res = await fetch(baseUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: csvPayload
+        });
+        const respText = (await res.text()).trim();
+        if (res.ok) {
+          const seqMatch = respText.match(/SEQ=(\d+)/i);
+          if (seqMatch && targetLogItem) {
+            targetLogItem.arduinoSeq = parseInt(seqMatch[1], 10);
+            saveLogs();
+          }
+          fb.textContent = `[SENT OK ${getThaiDateParts(Date.now()).timeStr}] ${respText || 'SAVED OK'} → ${csvPayload}`;
+          fb.className = 'mt-2 font-mono-tech text-[11px] text-emerald-300';
+        } else {
+          fb.textContent = `[HTTP ${res.status}] Arduino ตอบกลับไม่สำเร็จ: ${respText || csvPayload}`;
+          fb.className = 'mt-2 font-mono-tech text-[11px] text-amber-300';
+        }
+      } catch (err) {
+        fb.textContent = `[OFFLINE / SIM] ส่งไปยัง ${baseUrl} ไม่ได้ (หากทดสอบบนเครื่องที่ไม่มีบอร์ดต่ออยู่ถือว่าปกติ): ${csvPayload}`;
+        fb.className = 'mt-2 font-mono-tech text-[11px] text-rose-400';
+      }
+    }
+
+    function sendLatestLogToArduinoNow() {
+      const latest = logs.find(item => item.status === 'RUNNING' || item.status === 'BREAKDOWN');
+      if (!latest) {
+        alert('ยังไม่มีรายการ Log สำหรับส่งไปที่ Arduino');
+        return;
+      }
+      const payload = buildArduinoCsvLineFromLogItem(latest, false);
+      postLogLineToArduino(payload, latest);
+    }
+
+    function generateArduinoSampleLogText() {
+      const nowMs = Date.now();
+      const p1Start = getThaiDateParts(nowMs - 90000);
+      const p1End = getThaiDateParts(nowMs - 45000);
+      const p2Start = getThaiDateParts(nowMs - 45000);
+      const p2End = getThaiDateParts(nowMs - 15000);
+
+      const rows = [
+        [1, 'RUNNING', '1-1-1-1-1-1', 'AC_OK', p1Start.isoStr, p1End.isoStr, '0.75', 'TEST_RUN_45S'],
+        [2, 'BREAKDOWN', '0-0-0-0-0-0', 'AC_FAIL', p2Start.isoStr, p2End.isoStr, '0.50', 'AC_LOST_BREAKDOWN']
+      ];
+
+      const lines = ['seq,mode,sources,ac_status,start_time,end_time,duration_min,reason,crc32'];
+      rows.forEach(r => {
+        const payload = r.join('|');
+        const crc = calcUtf8Crc32Hex(payload);
+        lines.push(`${r.join(',')},${crc}`);
+      });
+
+      document.getElementById('arduinoLogEditorTextarea').value = lines.join('\n');
+      setLogEditorMsg('[READY] สร้างข้อมูลทดสอบในกล่องจำลองแล้ว (ยังไม่ทับ Log จริงจนกว่าจะกด Import Log) — เวลาอิงตามเวลาไทยปัจจุบัน');
+    }
+
+    function recalcCrcInEditor() {
+      const rawText = document.getElementById('arduinoLogEditorTextarea').value.trim();
+      if (!rawText) {
+        setLogEditorMsg('[EMPTY] ไม่มีข้อมูลในกล่องแก้ไข', true);
+        return;
+      }
+
+      const rawLines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const outLines = [];
+      let updatedCount = 0;
+
+      rawLines.forEach((line, idx) => {
+        if (idx === 0 && line.toLowerCase().startsWith('seq,')) {
+          outLines.push('seq,mode,sources,ac_status,start_time,end_time,duration_min,reason,crc32');
+          return;
+        }
+        const cols = line.split(',');
+        if (cols.length >= 8) {
+          const core8 = cols.slice(0, 8).map(c => c.trim());
+          const crc = calcUtf8Crc32Hex(core8.join('|'));
+          outLines.push(`${core8.join(',')},${crc}`);
+          updatedCount++;
+        } else {
+          outLines.push(line);
+        }
+      });
+
+      document.getElementById('arduinoLogEditorTextarea').value = outLines.join('\n');
+      setLogEditorMsg(`[CRC UPDATED] คำนวณ CRC32 ใหม่แล้ว ${updatedCount} แถว — พร้อมกด "Import Log เข้าหน้าเว็บ"`);
+    }
+
+    function parseThaiIsoDateToMs(dateTimeStr) {
+      const clean = String(dateTimeStr || '').trim().replace(' ', 'T');
+      if (!clean) return NaN;
+      const withTz = /([+-]\d{2}:?\d{2}|Z)$/i.test(clean) ? clean : `${clean}+07:00`;
+      return Date.parse(withTz);
+    }
+
+    function importLogFromCsvString(csvText, sourceLabel = 'Editor') {
+      const lines = String(csvText || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (lines.length === 0) {
+        setLogEditorMsg('[ERROR] ไม่พบข้อมูลบรรทัด Log สำหรับ Import', true);
+        return;
+      }
+
+      const parsedLogs = [];
+      let lineIndex = 0;
+
+      for (const line of lines) {
+        lineIndex++;
+        if (lineIndex === 1 && line.toLowerCase().startsWith('seq,')) continue;
+
+        const cols = line.split(',');
+        if (cols.length < 8) continue;
+
+        const seq = parseInt(cols[0], 10) || lineIndex;
+        const modeRaw = (cols[1] || 'RUNNING').trim().toUpperCase();
+        const srcArr = (cols[2] || '0-0-0-0-0-0').split('-').map(v => (v.trim() === '1' ? 1 : 0));
+        while (srcArr.length < 6) srcArr.push(0);
+        const acStr = (cols[3] || 'AC_OK').trim().toUpperCase();
+        const startStr = (cols[4] || '').trim();
+        const endStr = (cols[5] || '').trim();
+        const durMin = parseFloat(cols[6]) || 0;
+        const reason = sanitizeArduinoReason(cols[7] || '');
+        const providedCrc = (cols[8] || '').trim().toUpperCase();
+
+        const expectedCrc = calcUtf8Crc32Hex(cols.slice(0, 8).map(c => c.trim()).join('|'));
+        if (providedCrc && providedCrc !== expectedCrc) {
+          setLogEditorMsg(`[CRC MISMATCH แถวที่ ${lineIndex} seq=${seq}] CRC ไม่ตรง (${providedCrc} != ${expectedCrc}) — กด "อัปเดต CRC32 ทุกบรรทัด" ก่อน Import`, true);
+          return;
+        }
+
+        const startMs = parseThaiIsoDateToMs(startStr) || Date.now();
+        const endMs = parseThaiIsoDateToMs(endStr) || (startMs + durMin * 60000);
+        const tParts = getThaiDateParts(startMs);
+        const status = modeRaw.includes('BREAKDOWN') ? 'BREAKDOWN' : 'RUNNING';
+        const rate = status === 'RUNNING' ? getCurrentCombinedDoseRateAtTime(startMs, srcArr) : 0;
+
+        parsedLogs.push({
+          id: `SIM-LOG-${seq}-${startMs}-${lineIndex}`,
+          arduinoSeq: seq,
+          status,
+          acStatus: acStr === 'AC_FAIL' ? 'AC_FAIL' : 'AC_OK',
+          sources: srcArr.slice(0, 6),
+          startTimeMs: startMs,
+          endTimeMs: endMs,
+          durationMinutes: +durMin.toFixed(2),
+          co60CurieSnapshot: +calculateRadiationAtTime(startMs).currentCurie.toFixed(2),
+          doseRatePerMin: +rate.toFixed(5),
+          absorbedDose: +(durMin * rate).toFixed(5),
+          doseUnit: co60Config.unit,
+          fiscalYearBE: tParts.fiscalYearBE,
+          fiscalQuarter: tParts.fiscalQuarter,
+          note: `[${sourceLabel} #${seq}] ${reason || acStr}`
+        });
+      }
+
+      if (parsedLogs.length === 0) {
+        setLogEditorMsg('[ERROR] รูปแบบบรรทัดไม่ถูกต้อง ต้องมีอย่างน้อย 8 คอลัมน์ (seq,mode,sources,ac_status,start_time,end_time,duration_min,reason)', true);
+        return;
+      }
+
+      logs = parsedLogs.reverse();
+      saveLogs();
+      refreshDashboard();
+      setLogEditorMsg(`[IMPORT SUCCESS] นำเข้า ${parsedLogs.length} รายการจาก ${sourceLabel} สำเร็จ — กราฟและตัวเลข KPI อัปเดตแล้ว`);
+    }
+
+    function importLogFromEditor() {
+      const text = document.getElementById('arduinoLogEditorTextarea').value;
+      importLogFromCsvString(text, 'LogEditor');
+    }
+
+    function handleCsvFileUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const content = String(reader.result || '');
+        document.getElementById('arduinoLogEditorTextarea').value = content;
+        importLogFromCsvString(content, file.name);
+      };
+      reader.readAsText(file, 'utf-8');
+      event.target.value = '';
+    }
+
+    function exportArduinoFormatLogCSV() {
+      const reportLogs = [...logs]
+        .filter(item => item.status === 'RUNNING' || item.status === 'BREAKDOWN')
+        .reverse();
+
+      if (reportLogs.length === 0) {
+        alert('ไม่มีข้อมูล Log สำหรับ Export');
+        return;
+      }
+
+      const lines = ['seq,mode,sources,ac_status,start_time,end_time,duration_min,reason,crc32'];
+      reportLogs.forEach((item, idx) => {
+        const seqVal = item.arduinoSeq || (idx + 1);
+        lines.push(buildArduinoCsvLineFromLogItem(item, true, seqVal));
+      });
+
+      const csvText = lines.join('\n');
+      document.getElementById('arduinoLogEditorTextarea').value = csvText;
+
+      const blob = new Blob(['\uFEFF' + csvText], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `LOGS_ARDUINO_SIM_${getThaiDateParts(Date.now()).dateStr.replace(/\//g, '-')}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setLogEditorMsg(`[EXPORTED] ส่งออกไฟล์ Log ${reportLogs.length} รายการ และอัปเดตข้อความในกล่องแก้ไขเรียบร้อย`);
+    }
+
+    function getSourcePatternKey(sourcesArr) {
+      return sourcesArr.map(v => (v === 1 ? '1' : '0')).join('');
+    }
+
+    function formatSourcesText(sourcesArr) {
+      const list = sourcesArr.map((v, i) => (v === 1 ? `S${i + 1}` : null)).filter(Boolean);
+      return list.length > 0 ? list.join('+') : 'NONE';
+    }
+
+    function dateBEToThaiMidnightMs(day, monthIdx, yearBE) {
+      const yearAD = yearBE - 543;
+      const iso = `${String(yearAD).padStart(4, '0')}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00+07:00`;
+      return Date.parse(iso);
+    }
+
+    function calculateRadiationAtTime(targetMs) {
+      const co60RefMs = dateBEToThaiMidnightMs(co60Config.co60RefDay, co60Config.co60RefMonth, co60Config.co60RefYearBE);
+      const doseRefMs = dateBEToThaiMidnightMs(co60Config.doseRefDay, co60Config.doseRefMonth, co60Config.doseRefYearBE);
+
+      const elapsedCo60Ms = Math.max(0, targetMs - co60RefMs);
+      const elapsedDoseMs = Math.max(0, targetMs - doseRefMs);
+
+      const co60DecayFactor = Math.exp(-CO60_LAMBDA_MS * elapsedCo60Ms);
+      const doseDecayFactor = Math.exp(-CO60_LAMBDA_MS * elapsedDoseMs);
+
+      return {
+        co60DecayFactor,
+        doseDecayFactor,
+        currentCurie: co60Config.initialCurie * co60DecayFactor,
+        elapsedCo60Days: elapsedCo60Ms / 86400000,
+        elapsedDoseDays: elapsedDoseMs / 86400000,
+        co60RemainingPct: co60DecayFactor * 100,
+        doseRemainingPct: doseDecayFactor * 100
+      };
+    }
+
+    function getReferenceCombinedRateForSources(sourcesArr) {
+      const key = getSourcePatternKey(sourcesArr);
+      if (key === '000000') return 0;
+
+      const matchedPreset = presets.find(p => getSourcePatternKey(p.sources) === key);
+      if (matchedPreset) {
+        return parseFloat(matchedPreset.combinedRatePerMin) || 0;
+      }
+
+      if (key === getSourcePatternKey(co60Config.selectedSources)) {
+        return parseFloat(co60Config.refCombinedDoseRatePerMin) || 0;
+      }
+
+      return 0;
+    }
+
+    function getCurrentCombinedDoseRateAtTime(targetMs, sourcesArr) {
+      if (!sourcesArr.some(v => v === 1)) return 0;
+      const rad = calculateRadiationAtTime(targetMs);
+      const refCombined = getReferenceCombinedRateForSources(sourcesArr);
+      return refCombined * rad.doseDecayFactor;
+    }
+
+    function populateDateDropdowns(dId, mId, yId, minYearBE, maxYearBE) {
+      const dEl = document.getElementById(dId);
+      const mEl = document.getElementById(mId);
+      const yEl = document.getElementById(yId);
+
+      for (let d = 1; d <= 31; d++) dEl.innerHTML += `<option value="${d}">${d}</option>`;
+      THAI_MONTHS.forEach((m, idx) => mEl.innerHTML += `<option value="${idx}">${m}</option>`);
+      for (let y = minYearBE; y <= maxYearBE; y++) yEl.innerHTML += `<option value="${y}">${y}</option>`;
+    }
+
+    function renderMappingSourceCheckboxes() {
+      const grid = document.getElementById('mappingSourceCheckGrid');
+      grid.innerHTML = '';
+      for (let i = 0; i < 6; i++) {
+        const active = co60Config.selectedSources[i] === 1;
+        grid.innerHTML += `
+          <button type="button" onclick="toggleMappingSourceCheck(${i})"
+            class="src-pick-btn py-1.5 rounded border text-xs font-orbitron font-bold transition ${
+              active ? 'active border-cyan-400 text-white' : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-500'
+            }">
+            S${i + 1}
+          </button>
+        `;
+      }
+      updateMappingPatternLabel();
+    }
+
+    function toggleMappingSourceCheck(idx) {
+      co60Config.selectedSources[idx] = co60Config.selectedSources[idx] === 1 ? 0 : 1;
+      renderMappingSourceCheckboxes();
+
+      const key = getSourcePatternKey(co60Config.selectedSources);
+      const matched = presets.find(p => getSourcePatternKey(p.sources) === key);
+      if (matched) {
+        co60Config.refCombinedDoseRatePerMin = parseFloat(matched.combinedRatePerMin) || 0;
+        document.getElementById('combinedRefDoseRateInput').value = co60Config.refCombinedDoseRatePerMin;
+      }
+
+      saveCo60Settings();
+
+      if (isSimulationMode) {
+        evaluateSystemState([...co60Config.selectedSources]);
+      }
+    }
+
+    function handleCombinedDoseInput() {
+      const val = parseFloat(document.getElementById('combinedRefDoseRateInput').value);
+      co60Config.refCombinedDoseRatePerMin = isNaN(val) ? 0 : val;
+
+      const key = getSourcePatternKey(co60Config.selectedSources);
+      const matched = presets.find(p => getSourcePatternKey(p.sources) === key);
+      if (matched) {
+        matched.combinedRatePerMin = co60Config.refCombinedDoseRatePerMin;
+        localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(presets));
+        renderPresetDropdown();
+      }
+
+      saveCo60Settings();
+    }
+
+    function updateMappingPatternLabel() {
+      const activeCount = co60Config.selectedSources.filter(v => v === 1).length;
+      const text = formatSourcesText(co60Config.selectedSources);
+      document.getElementById('activeMappingPatternText').textContent =
+        `ชุดที่เลือก: ${text} (${activeCount} Sources)`;
+
+      const key = getSourcePatternKey(co60Config.selectedSources);
+      const matched = presets.find(p => getSourcePatternKey(p.sources) === key);
+      const statusEl = document.getElementById('presetMatchStatusText');
+      if (matched) {
+        statusEl.textContent = `ตรงกับ Preset: "${matched.name}"`;
+        statusEl.className = 'text-emerald-400';
+      } else if (activeCount === 0) {
+        statusEl.textContent = 'ยังไม่ได้เลือก Source';
+        statusEl.className = 'text-slate-400';
+      } else {
+        statusEl.textContent = 'ชุดใหม่ (กด "+ บันทึก Preset" เพื่อเก็บค่า)';
+        statusEl.className = 'text-amber-300';
+      }
+    }
+
+    function initCo60CalibrationUI() {
+      const nowParts = getThaiDateParts(Date.now());
+      populateDateDropdowns('co60RefDay', 'co60RefMonth', 'co60RefYearBE', nowParts.yearBE - 20, nowParts.yearBE + 2);
+      populateDateDropdowns('doseRefDay', 'doseRefMonth', 'doseRefYearBE', nowParts.yearBE - 15, nowParts.yearBE + 2);
+
+      try {
+        const savedCfg = localStorage.getItem(CO60_SETTINGS_KEY);
+        if (savedCfg) co60Config = { ...co60Config, ...JSON.parse(savedCfg) };
+      } catch (e) {}
+
+      try {
+        const savedPresets = localStorage.getItem(PRESETS_STORAGE_KEY);
+        if (savedPresets) {
+          const parsed = JSON.parse(savedPresets);
+          if (Array.isArray(parsed) && parsed.length > 0) presets = parsed;
+        }
+      } catch (e) {}
+
+      document.getElementById('initialCurieInput').value = co60Config.initialCurie;
+      document.getElementById('co60RefDay').value = co60Config.co60RefDay;
+      document.getElementById('co60RefMonth').value = co60Config.co60RefMonth;
+      document.getElementById('co60RefYearBE').value = co60Config.co60RefYearBE;
+
+      document.getElementById('doseRefDay').value = co60Config.doseRefDay;
+      document.getElementById('doseRefMonth').value = co60Config.doseRefMonth;
+      document.getElementById('doseRefYearBE').value = co60Config.doseRefYearBE;
+
+      document.getElementById('doseUnitSelect').value = co60Config.unit;
+      document.getElementById('combinedRefDoseRateInput').value = co60Config.refCombinedDoseRatePerMin ?? 0;
+
+      renderMappingSourceCheckboxes();
+      renderPresetDropdown();
+      updateRadiationRealtimeDisplay();
+    }
+
+    function saveCo60Settings() {
+      co60Config.initialCurie = parseFloat(document.getElementById('initialCurieInput').value) || 0;
+      co60Config.co60RefDay = parseInt(document.getElementById('co60RefDay').value, 10) || 1;
+      co60Config.co60RefMonth = parseInt(document.getElementById('co60RefMonth').value, 10) || 0;
+      co60Config.co60RefYearBE = parseInt(document.getElementById('co60RefYearBE').value, 10) || 2568;
+
+      co60Config.doseRefDay = parseInt(document.getElementById('doseRefDay').value, 10) || 1;
+      co60Config.doseRefMonth = parseInt(document.getElementById('doseRefMonth').value, 10) || 0;
+      co60Config.doseRefYearBE = parseInt(document.getElementById('doseRefYearBE').value, 10) || 2569;
+
+      co60Config.unit = document.getElementById('doseUnitSelect').value || 'kGy';
+      document.getElementById('combinedDoseUnitLabel').textContent = `${co60Config.unit}/m`;
+
+      localStorage.setItem(CO60_SETTINGS_KEY, JSON.stringify(co60Config));
+      updateMappingPatternLabel();
+      updateRadiationRealtimeDisplay();
+      renderSourceCards();
+      refreshDashboard();
+    }
+
+    function renderPresetDropdown() {
+      const sel = document.getElementById('presetSelect');
+      const currentVal = sel.value;
+      sel.innerHTML = `<option value="">-- เลือก Preset ที่บันทึกไว้ --</option>`;
+      presets.forEach(p => {
+        const srcText = formatSourcesText(p.sources);
+        const rate = parseFloat(p.combinedRatePerMin) || 0;
+        sel.innerHTML += `<option value="${p.id}">${p.name} [${srcText} | รวม ${rate.toFixed(4)} ${co60Config.unit}/นาที]</option>`;
+      });
+      if (currentVal) sel.value = currentVal;
+    }
+
+    function saveNewPreset() {
+      const srcText = formatSourcesText(co60Config.selectedSources);
+      const count = co60Config.selectedSources.filter(v => v === 1).length;
+      const defaultName = count > 0 ? `ชุด ${count} Source (${srcText})` : 'Preset ใหม่';
+      const name = prompt('ตั้งชื่อ Preset สำหรับชุด Source และ Dose Rate รวมนี้:', defaultName);
+      if (!name || !name.trim()) return;
+
+      const rateVal = parseFloat(document.getElementById('combinedRefDoseRateInput').value) || 0;
+      const key = getSourcePatternKey(co60Config.selectedSources);
+
+      const existingIdx = presets.findIndex(p => getSourcePatternKey(p.sources) === key);
+      if (existingIdx >= 0) {
+        presets[existingIdx].name = name.trim();
+        presets[existingIdx].combinedRatePerMin = rateVal;
+        presets[existingIdx].sources = [...co60Config.selectedSources];
+      } else {
+        presets.push({
+          id: 'preset-' + Date.now(),
+          name: name.trim(),
+          sources: [...co60Config.selectedSources],
+          combinedRatePerMin: rateVal
+        });
+      }
+
+      localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(presets));
+      renderPresetDropdown();
+      saveCo60Settings();
+    }
+
+    function applySelectedPreset() {
+      const id = document.getElementById('presetSelect').value;
+      if (!id) return;
+      const found = presets.find(p => p.id === id);
+      if (!found) return;
+
+      co60Config.selectedSources = [...found.sources];
+      co60Config.refCombinedDoseRatePerMin = parseFloat(found.combinedRatePerMin) || 0;
+      document.getElementById('combinedRefDoseRateInput').value = co60Config.refCombinedDoseRatePerMin;
+
+      renderMappingSourceCheckboxes();
+      saveCo60Settings();
+
+      if (isSimulationMode && Array.isArray(found.sources) && found.sources.length === 6) {
+        evaluateSystemState([...found.sources]);
+      }
+    }
+
+    function deleteSelectedPreset() {
+      const id = document.getElementById('presetSelect').value;
+      if (!id) return;
+      presets = presets.filter(p => p.id !== id);
+      localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(presets));
+      renderPresetDropdown();
+      updateMappingPatternLabel();
+    }
+
+    function updateRadiationRealtimeDisplay() {
+      const nowMs = Date.now();
+      const rad = calculateRadiationAtTime(nowMs);
+      const unit = co60Config.unit;
+
+      document.getElementById('co60DecayBadge').textContent = `Decay: ${rad.co60DecayFactor.toFixed(6)}`;
+      document.getElementById('doseDecayBadge').textContent = `Mapping Decay: ${rad.doseDecayFactor.toFixed(6)}`;
+
+      document.getElementById('currentCurieDisplay').textContent =
+        `${rad.currentCurie.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Ci`;
+      document.getElementById('elapsedCo60DaysDisplay').textContent =
+        `ผ่านไป ${rad.elapsedCo60Days.toFixed(1)} วัน (เหลือ ${rad.co60RemainingPct.toFixed(2)}%)`;
+
+      const anyRunning = currentSources.some(v => v === 1);
+      const targetSources = anyRunning ? currentSources : co60Config.selectedSources;
+      const currentCombinedRate = getCurrentCombinedDoseRateAtTime(nowMs, targetSources);
+
+      document.getElementById('activeCurrentDoseRateDisplay').textContent = `${currentCombinedRate.toFixed(4)} ${unit}/นาที`;
+      document.getElementById('elapsedDoseDaysDisplay').textContent =
+        `เทียบวัน Mapping: ${rad.elapsedDoseDays.toFixed(1)} วัน (เหลือ ${rad.doseRemainingPct.toFixed(2)}%)`;
+
+      const infoEl = document.getElementById('liveRunningSourceDoseInfo');
+      if (anyRunning) {
+        const srcLabel = formatSourcesText(currentSources);
+        const refRate = getReferenceCombinedRateForSources(currentSources);
+        if (refRate > 0) {
+          infoEl.innerHTML = `กำลังฉายรังสีชุด <span class="text-emerald-300 font-bold">${srcLabel}</span> • Dose Rate รวม ณ วัน Mapping: ${refRate.toFixed(4)} ${unit}/นาที → ปัจจุบัน: <span class="text-cyan-300 font-bold">${currentCombinedRate.toFixed(4)} ${unit}/นาที</span>`;
+        } else {
+          infoEl.innerHTML = `กำลังฉายรังสีชุด <span class="text-amber-300 font-bold">${srcLabel}</span> • <span class="text-rose-400">ยังไม่มีค่า Dose Rate รวมสำหรับชุด Source นี้ (กรุณาติ๊กชุดนี้และกรอก/บันทึก Preset)</span>`;
+        }
+      } else {
+        const previewText = formatSourcesText(co60Config.selectedSources);
+        infoEl.textContent = `Standby • แสดงค่า Dose Rate รวมปัจจุบันของชุดที่เลือก (${previewText}): ${currentCombinedRate.toFixed(4)} ${unit}/นาที`;
+      }
+    }
+
+    function updateLiveClock() {
+      const nowMs = Date.now();
+      const nowParts = getThaiDateParts(nowMs);
+      document.getElementById('liveThaiClock').textContent =
+        `${nowParts.day} ${THAI_MONTHS_SHORT[nowParts.monthIndex]} ${nowParts.yearBE} | ${nowParts.timeStr} น.`;
+      document.getElementById('fiscalBadge').textContent =
+        `ปีงบประมาณ ${nowParts.fiscalYearBE} • ไตรมาส ${nowParts.fiscalQuarter}`;
+
+      updateRadiationRealtimeDisplay();
+
+      const elapsedMs = Math.max(0, nowMs - activeSession.startTimeMs);
+      const elapsedSec = Math.floor(elapsedMs / 1000);
+      const h = String(Math.floor(elapsedSec / 3600)).padStart(2, '0');
+      const m = String(Math.floor((elapsedSec % 3600) / 60)).padStart(2, '0');
+      const s = String(elapsedSec % 60).padStart(2, '0');
+      document.getElementById('liveSessionTimer').textContent = `${h}:${m}:${s}`;
+
+      const liveDoseEl = document.getElementById('liveSessionDose');
+      if (activeSession.status === 'RUNNING') {
+        const elapsedMin = elapsedMs / 60000;
+        const combinedRate = getCurrentCombinedDoseRateAtTime(nowMs, activeSession.sources);
+        liveDoseEl.textContent = `${(elapsedMin * combinedRate).toFixed(4)} ${co60Config.unit}`;
+        liveDoseEl.className = 'font-orbitron text-xl md:text-2xl font-bold text-emerald-300 tracking-wider mt-1';
+      } else {
+        liveDoseEl.textContent = `0.0000 ${co60Config.unit}`;
+        liveDoseEl.className = 'font-orbitron text-xl md:text-2xl font-bold text-slate-500 tracking-wider mt-1';
+      }
+    }
+
+    function updateAcBadge(acOk) {
+      lastAcOk = acOk;
+      const el = document.getElementById('acMainsBadge');
+      if (acOk) {
+        el.textContent = 'AC MAINS: NORMAL';
+        el.className = 'text-xs font-mono-tech text-emerald-300 px-2 py-0.5 border border-emerald-500/40 bg-emerald-950/40 rounded';
+      } else {
+        el.textContent = 'AC MAINS: LOST (BACKUP LOG)';
+        el.className = 'text-xs font-mono-tech text-rose-300 px-2 py-0.5 border border-rose-500/50 bg-rose-950/60 rounded animate-pulse';
+      }
+    }
+
+    function evaluateSystemState(newSources, acOk = lastAcOk) {
+      updateAcBadge(acOk);
+      const anySourceUp = newSources.some(v => v === 1);
+      const cb = document.getElementById('breakdownCheckbox');
+      const interlockBadge = document.getElementById('interlockBadge');
+
+      if (anySourceUp) {
+        if (isBreakdownChecked) {
+          isBreakdownChecked = false;
+          cb.checked = false;
+        }
+        cb.disabled = true;
+        interlockBadge.textContent = 'INTERLOCK: LOCKED (มี SOURCE UP)';
+        interlockBadge.className = 'text-[11px] font-mono-tech px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40';
+      } else {
+        cb.disabled = false;
+        interlockBadge.textContent = 'INTERLOCK: UNLOCKED (พร้อมกด)';
+        interlockBadge.className = 'text-[11px] font-mono-tech px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40';
+      }
+
+      let nextStatus = 'STOP';
+      if (!acOk && !anySourceUp) {
+        nextStatus = 'BREAKDOWN';
+        if (!breakdownReason.trim()) {
+          breakdownReason = 'AC_LOST_OR_PM';
+          document.getElementById('breakdownReasonInput').value = breakdownReason;
+        }
+      } else if (anySourceUp) {
+        nextStatus = 'RUNNING';
+      } else if (isBreakdownChecked) {
+        nextStatus = 'BREAKDOWN';
+      } else {
+        nextStatus = 'STOP';
+      }
+
+      const sourcesChanged = JSON.stringify(newSources) !== JSON.stringify(activeSession.sources);
+      const statusChanged = nextStatus !== activeSession.status;
+
+      currentSources = [...newSources];
+      updateRadiationRealtimeDisplay();
+      renderSourceCards();
+      updateMainStatusVisuals(nextStatus);
+
+      if (statusChanged || (nextStatus === 'RUNNING' && sourcesChanged)) {
+        commitCurrentSessionAndStartNext(nextStatus, currentSources);
+      }
+    }
+
+    function commitCurrentSessionAndStartNext(nextStatus, nextSources) {
+      const nowMs = Date.now();
+      const durationMs = Math.max(0, nowMs - activeSession.startTimeMs);
+
+      if (durationMs >= 500 && (activeSession.status === 'RUNNING' || activeSession.status === 'BREAKDOWN')) {
+        const startParts = getThaiDateParts(activeSession.startTimeMs);
+        const exactMinutes = durationMs / 60000;
+        const durationMinutes = +exactMinutes.toFixed(2);
+        const midTimeMs = activeSession.startTimeMs + (durationMs / 2);
+        const radSnap = calculateRadiationAtTime(midTimeMs);
+
+        let combinedRate = 0;
+        let absorbedDose = 0;
+        if (activeSession.status === 'RUNNING') {
+          combinedRate = getCurrentCombinedDoseRateAtTime(midTimeMs, activeSession.sources);
+          absorbedDose = exactMinutes * combinedRate;
+        }
+
+        const newLogItem = {
+          id: 'LOG-' + nowMs,
+          arduinoSeq: null,
+          status: activeSession.status,
+          acStatus: lastAcOk ? 'AC_OK' : 'AC_FAIL',
+          sources: [...activeSession.sources],
+          startTimeMs: activeSession.startTimeMs,
+          endTimeMs: nowMs,
+          durationMinutes,
+          co60CurieSnapshot: +radSnap.currentCurie.toFixed(2),
+          doseRatePerMin: +combinedRate.toFixed(5),
+          absorbedDose: +absorbedDose.toFixed(5),
+          doseUnit: co60Config.unit,
+          fiscalYearBE: startParts.fiscalYearBE,
+          fiscalQuarter: startParts.fiscalQuarter,
+          note: activeSession.note || getDefaultNote(activeSession.status, activeSession.sources)
+        };
+
+        logs.unshift(newLogItem);
+        saveLogs();
+
+        if (autoWriteArduinoEnabled) {
+          const payload7Cols = buildArduinoCsvLineFromLogItem(newLogItem, false);
+          postLogLineToArduino(payload7Cols, newLogItem);
+        }
+      }
+
+      activeSession = {
+        status: nextStatus,
+        sources: [...nextSources],
+        startTimeMs: nowMs,
+        note: getDefaultNote(nextStatus, nextSources)
+      };
+
+      const newStartParts = getThaiDateParts(nowMs);
+      document.getElementById('sessionStartDisplay').textContent = `เริ่มรอบ: ${newStartParts.timeStr} น.`;
+      refreshDashboard();
+    }
+
+    function getDefaultNote(status, sources) {
+      if (status === 'RUNNING') {
+        const activeList = sources.map((v, i) => v === 1 ? `S${i + 1}` : null).filter(Boolean).join('+');
+        return `IRRADIATING ${activeList}`;
+      }
+      if (status === 'BREAKDOWN') {
+        return breakdownReason.trim() || 'AC_LOST_OR_PM';
+      }
+      return 'STANDBY_STOP';
+    }
+
+    function handleBreakdownToggle() {
+      if (currentSources.some(v => v === 1)) {
+        document.getElementById('breakdownCheckbox').checked = false;
+        return;
+      }
+      isBreakdownChecked = document.getElementById('breakdownCheckbox').checked;
+      const reasonText = (document.getElementById('breakdownReasonInput')?.value || '').trim() || 'MANUAL_BREAKDOWN_OR_PM';
+      if (!isSimulationMode) {
+        if (isBreakdownChecked) {
+          postModeToArduino('BREAKDOWN', reasonText);
+        } else {
+          postModeToArduino('STOP', 'CLEARED_FROM_WEB');
+        }
+      }
+      evaluateSystemState(currentSources);
+    }
+
+    function updateBreakdownReason() {
+      breakdownReason = document.getElementById('breakdownReasonInput').value;
+      if (activeSession.status === 'BREAKDOWN') {
+        activeSession.note = breakdownReason.trim() || 'AC_LOST_OR_PM';
+        if (!isSimulationMode) {
+          postModeToArduino('BREAKDOWN', activeSession.note);
+        }
+      }
+    }
+
+    function renderSourceCards() {
+      const grid = document.getElementById('sourceGrid');
+      grid.innerHTML = '';
+
+      currentSources.forEach((state, idx) => {
+        const isUp = state === 1;
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.onclick = () => toggleSingleSourceSim(idx);
+        card.className = `p-3.5 rounded-lg border text-left transition-all relative overflow-hidden ${
+          isUp
+            ? 'bg-emerald-950/45 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.28)]'
+            : 'bg-slate-950/75 border-slate-700/80 hover:border-cyan-500/50'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="font-orbitron text-xs font-bold ${isUp ? 'text-emerald-300' : 'text-slate-400'}">SOURCE 0${idx + 1}</span>
+            <span class="w-3 h-3 rounded-full ${isUp ? 'bg-emerald-400 shadow-[0_0_10px_#10b981] animate-ping' : 'bg-slate-700'}"></span>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0 ${
+              isUp ? 'border-emerald-400 text-emerald-300 bg-emerald-500/20' : 'border-slate-700 text-slate-600'
+            }">
+              <span class="font-mono-tech text-[11px] font-bold">${isUp ? 'UP' : 'OFF'}</span>
+            </div>
+            <div>
+              <div class="text-xs font-bold ${isUp ? 'text-white' : 'text-slate-400'}">
+                ${isUp ? 'กำลังฉายรังสี' : 'ตำแหน่งเก็บ'}
+              </div>
+              <div class="font-mono-tech text-[10px] ${isUp ? 'text-emerald-300' : 'text-slate-500'}">
+                PIN D${idx + 2} : ${isUp ? 'ACTIVE' : 'SAFE'}
+              </div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function updateMainStatusVisuals(status) {
+      const card = document.getElementById('mainStateCard');
+      const label = document.getElementById('currentStateLabel');
+      const sub = document.getElementById('currentStateSub');
+      const badge = document.getElementById('activeSourceSummary');
+
+      const activeNames = currentSources.map((v, i) => v === 1 ? `S${i + 1}` : null).filter(Boolean);
+      badge.textContent = `${activeNames.length}/6 SOURCES ACTIVE`;
+
+      card.classList.remove('hud-panel-active', 'hud-panel-danger');
+
+      if (status === 'RUNNING') {
+        card.classList.add('hud-panel-active');
+        label.textContent = 'IRRADIATING // RUN';
+        label.className = 'text-2xl md:text-4xl font-orbitron font-black tracking-wider text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.6)]';
+        sub.textContent = `กำลังฉายรังสีด้วยชุด Source: [ ${activeNames.join(', ')} ] • บันทึกเวลาและโดสอัตโนมัติ`;
+        badge.className = 'text-xs font-mono-tech px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-400/60';
+      } else if (status === 'BREAKDOWN') {
+        card.classList.add('hud-panel-danger');
+        label.textContent = 'BREAKDOWN / PM';
+        label.className = 'text-2xl md:text-4xl font-orbitron font-black tracking-wider text-rose-400 drop-shadow-[0_0_10px_rgba(244,63,94,0.6)]';
+        sub.textContent = `กำลังบันทึกเวลาซ่อมบำรุง/เครื่องขัดข้อง • จะปลดล็อกอัตโนมัติทันทีเมื่อมี Source Up`;
+        badge.className = 'text-xs font-mono-tech px-2.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-400/60';
+      } else {
+        label.textContent = 'STANDBY / STOP';
+        label.className = 'text-2xl md:text-4xl font-orbitron font-black tracking-wider text-cyan-300';
+        sub.textContent = 'หลอดไฟ Source 1-6 ดับทั้งหมด • ระบบพร้อมเดินเครื่องหรือเข้าโหมดซ่อมบำรุง';
+        badge.className = 'text-xs font-mono-tech px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-600';
+      }
+    }
+
+    function toggleSingleSourceSim(index) {
+      if (!isSimulationMode) {
+        alert('ขณะนี้อยู่ในโหมดเชื่อมต่อ Arduino จริง');
+        return;
+      }
+      const updated = [...currentSources];
+      updated[index] = updated[index] === 1 ? 0 : 1;
+      evaluateSystemState(updated);
+    }
+
+    function setDemoSources(arr) {
+      if (!isSimulationMode) return;
+      evaluateSystemState(arr);
+    }
+
+    function toggleConnectionMode() {
+      isSimulationMode = !isSimulationMode;
+      const indicator = document.getElementById('connIndicator');
+      const statusText = document.getElementById('connStatusText');
+      const btn = document.getElementById('toggleModeBtn');
+      const demoBar = document.getElementById('demoQuickBar');
+      const hint = document.getElementById('simControlHint');
+
+      if (isSimulationMode) {
+        stopLiveArduinoPolling();
+        indicator.className = 'w-3 h-3 rounded-full bg-amber-400 animate-pulse';
+        statusText.textContent = 'โหมดจำลอง (SIMULATION)';
+        statusText.className = 'font-bold text-amber-300';
+        btn.textContent = 'สลับเป็น Arduino จริง';
+        demoBar.classList.remove('hidden');
+        hint.textContent = 'คลิกที่ Source 1-6 ด้านล่างเพื่อจำลองเปิด/ปิดไฟ';
+      } else {
+        indicator.className = 'w-3 h-3 rounded-full bg-cyan-400 animate-ping';
+        statusText.textContent = 'โหมดเชื่อมต่อ Arduino จริง (LAN: 192.168.10.1)';
+        statusText.className = 'font-bold text-cyan-300';
+        btn.textContent = 'กลับสู่โหมดจำลอง';
+        demoBar.classList.add('hidden');
+        hint.textContent = 'กำลังรับสัญญาณ Source 1-6 และไฟ AC แบบ Real-time จาก Arduino ทุก 1 วินาที';
+        startLiveArduinoPolling();
+      }
+    }
+
+    function initDateSelectors() {
+      const nowParts = getThaiDateParts(Date.now());
+      ['startDay', 'endDay'].forEach(id => {
+        const el = document.getElementById(id);
+        for (let d = 1; d <= 31; d++) el.innerHTML += `<option value="${d}">${d}</option>`;
+      });
+
+      ['startMonth', 'endMonth'].forEach(id => {
+        const el = document.getElementById(id);
+        THAI_MONTHS.forEach((m, idx) => el.innerHTML += `<option value="${idx}">${m}</option>`);
+      });
+
+      ['startYearBE', 'endYearBE'].forEach(id => {
+        const el = document.getElementById(id);
+        for (let y = nowParts.yearBE - 3; y <= nowParts.yearBE + 2; y++) {
+          el.innerHTML += `<option value="${y}">พ.ศ. ${y}</option>`;
+        }
+      });
+
+      document.getElementById('startDay').value = 1;
+      document.getElementById('startMonth').value = nowParts.monthIndex;
+      document.getElementById('startYearBE').value = nowParts.yearBE;
+
+      document.getElementById('endDay').value = nowParts.day;
+      document.getElementById('endMonth').value = nowParts.monthIndex;
+      document.getElementById('endYearBE').value = nowParts.yearBE;
+
+      const fySelect = document.getElementById('fiscalYearSelect');
+      for (let fy = nowParts.fiscalYearBE - 2; fy <= nowParts.fiscalYearBE + 2; fy++) {
+        fySelect.innerHTML += `<option value="${fy}">ปีงบประมาณ ${fy}</option>`;
+      }
+      fySelect.value = nowParts.fiscalYearBE;
+    }
+
+    function handleFilterModeChange() {
+      const mode = document.getElementById('filterModeSelect').value;
+      document.getElementById('customDateFilterBox').classList.toggle('hidden', mode !== 'custom');
+      document.getElementById('customDateFilterBox').classList.toggle('flex', mode === 'custom');
+      document.getElementById('fiscalFilterBox').classList.toggle('hidden', mode !== 'fiscal');
+      document.getElementById('fiscalFilterBox').classList.toggle('flex', mode === 'fiscal');
+      refreshDashboard();
+    }
+
+    function getFilteredLogs() {
+      const mode = document.getElementById('filterModeSelect').value;
+      const descEl = document.getElementById('activeFilterDescription');
+      const printPeriodEl = document.getElementById('printReportPeriod');
+
+      const reportOnlyLogs = logs.filter(item => item.status === 'RUNNING' || item.status === 'BREAKDOWN');
+
+      if (mode === 'all') {
+        const label = 'แสดงข้อมูลทั้งหมดในระบบ (ไม่รวมเวลาหยุดเครื่อง)';
+        descEl.textContent = label;
+        printPeriodEl.textContent = label;
+        return reportOnlyLogs;
+      }
+
+      if (mode === 'fiscal') {
+        const targetFY = parseInt(document.getElementById('fiscalYearSelect').value, 10);
+        const targetQ = document.getElementById('fiscalQuarterSelect').value;
+        const qText = targetQ === 'ALL' ? 'ทั้งปีงบประมาณ (Q1 - Q4)' : `ไตรมาสที่ ${targetQ}`;
+        const label = `ปีงบประมาณ พ.ศ. ${targetFY} • ${qText} (ไม่รวมเวลาหยุดเครื่อง)`;
+        descEl.textContent = label;
+        printPeriodEl.textContent = `ช่วงเวลาข้อมูล: ${label}`;
+
+        return reportOnlyLogs.filter(item => {
+          if (item.fiscalYearBE !== targetFY) return false;
+          if (targetQ !== 'ALL' && String(item.fiscalQuarter) !== targetQ) return false;
+          return true;
+        });
+      }
+
+      const sD = parseInt(document.getElementById('startDay').value, 10);
+      const sM = parseInt(document.getElementById('startMonth').value, 10);
+      const sY = parseInt(document.getElementById('startYearBE').value, 10);
+
+      const eD = parseInt(document.getElementById('endDay').value, 10);
+      const eM = parseInt(document.getElementById('endMonth').value, 10);
+      const eY = parseInt(document.getElementById('endYearBE').value, 10);
+
+      const startRangeMs = dateBEToThaiMidnightMs(sD, sM, sY);
+      const endRangeMs = dateBEToThaiMidnightMs(eD, eM, eY) + 86399999;
+
+      const label = `ตั้งแต่วันที่ ${sD} ${THAI_MONTHS[sM]} พ.ศ. ${sY} ถึง ${eD} ${THAI_MONTHS[eM]} พ.ศ. ${eY} (ไม่รวมเวลาหยุดเครื่อง)`;
+      descEl.textContent = label;
+      printPeriodEl.textContent = `ช่วงเวลาข้อมูล: ${label}`;
+
+      return reportOnlyLogs.filter(item => item.startTimeMs >= startRangeMs && item.startTimeMs <= endRangeMs);
+    }
+
+    function refreshDashboard() {
+      const filtered = getFilteredLogs();
+      const unit = co60Config.unit;
+
+      let runMin = 0, breakMin = 0;
+      let runCount = 0, breakCount = 0;
+      let totalDose = 0;
+      const sourceMinutes = [0, 0, 0, 0, 0, 0];
+      const sourceDoses = [0, 0, 0, 0, 0, 0];
+
+      filtered.forEach(item => {
+        if (item.status === 'RUNNING') {
+          runMin += item.durationMinutes;
+          runCount++;
+
+          let itemDose = item.absorbedDose || 0;
+          if (item.doseUnit && item.doseUnit !== unit) {
+            if (item.doseUnit === 'Gy' && unit === 'kGy') itemDose = itemDose / 1000;
+            if (item.doseUnit === 'kGy' && unit === 'Gy') itemDose = itemDose * 1000;
+          }
+          totalDose += itemDose;
+
+          item.sources.forEach((active, idx) => {
+            if (active === 1) {
+              sourceMinutes[idx] += item.durationMinutes;
+              sourceDoses[idx] += itemDose;
+            }
+          });
+        } else if (item.status === 'BREAKDOWN') {
+          breakMin += item.durationMinutes;
+          breakCount++;
+        }
+      });
+
+      const totalReportedMin = runMin + breakMin;
+      const runSharePct = totalReportedMin > 0 ? ((runMin / totalReportedMin) * 100) : 100;
+
+      document.getElementById('kpiRunTime').textContent = `${(runMin / 60).toFixed(2)} ชม.`;
+      document.getElementById('kpiRunSub').textContent = `${runMin.toFixed(2)} นาที (${runCount} รอบ)`;
+
+      document.getElementById('kpiTotalDose').textContent = `${totalDose.toFixed(2)} ${unit}`;
+      document.getElementById('kpiTotalDoseSub').textContent =
+        runMin > 0 ? `เฉลี่ย ${(totalDose / runMin).toFixed(4)} ${unit}/นาที` : 'ปริมาณรังสีรวมที่ฉายขณะเดินเครื่อง';
+
+      document.getElementById('kpiBreakTime').textContent = `${(breakMin / 60).toFixed(2)} ชม.`;
+      document.getElementById('kpiBreakSub').textContent = `${breakMin.toFixed(2)} นาที (${breakCount} ครั้ง)`;
+
+      document.getElementById('kpiAvailability').textContent = `${runSharePct.toFixed(1)}%`;
+
+      renderCharts(runMin, breakMin, sourceMinutes, sourceDoses);
+      renderLogTable(filtered);
+    }
+
+    function renderCharts(runMin, breakMin, sourceMinutes, sourceDoses) {
+      const ctxDoughnut = document.getElementById('statusDoughnutChart').getContext('2d');
+      if (doughnutChart) doughnutChart.destroy();
+
+      doughnutChart = new Chart(ctxDoughnut, {
+        type: 'doughnut',
+        data: {
+          labels: ['เดินเครื่อง (Running)', 'ซ่อมบำรุง (Breakdown)'],
+          datasets: [{
+            data: [+(runMin / 60).toFixed(2), +(breakMin / 60).toFixed(2)],
+            backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(244, 63, 94, 0.85)'],
+            borderColor: ['#10b981', '#f43f5e'],
+            borderWidth: 1.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#cbd5e1', font: { family: 'Chakra Petch' } } }
+          }
+        }
+      });
+
+      const ctxBar = document.getElementById('sourceBarChart').getContext('2d');
+      if (barChart) barChart.destroy();
+
+      barChart = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: ['Source 1', 'Source 2', 'Source 3', 'Source 4', 'Source 5', 'Source 6'],
+          datasets: [
+            {
+              label: 'ชั่วโมงที่ Source นี้ร่วมเดินเครื่อง (ชม.)',
+              data: sourceMinutes.map(m => +(m / 60).toFixed(2)),
+              backgroundColor: 'rgba(0, 240, 255, 0.35)',
+              borderColor: '#00f0ff',
+              borderWidth: 1.5,
+              borderRadius: 4
+            },
+            {
+              label: `โดสรวมในรอบที่ Source นี้ร่วมทำงาน (${co60Config.unit})`,
+              data: sourceDoses.map(d => +d.toFixed(2)),
+              backgroundColor: 'rgba(168, 85, 247, 0.45)',
+              borderColor: '#a855f7',
+              borderWidth: 1.5,
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.12)' }, ticks: { color: '#94a3b8' } },
+            x: { grid: { display: false }, ticks: { color: '#e2e8f0', font: { family: 'Orbitron', size: 11 } } }
+          },
+          plugins: {
+            legend: { labels: { color: '#cbd5e1', font: { family: 'Chakra Petch' } } }
+          }
+        }
+      });
+    }
+
+    function computeQuarterlyStats(targetFY) {
+      const unit = co60Config.unit;
+      const quarters = [1, 2, 3, 4];
+      const qLabels = [
+        'ไตรมาส 1 (ต.ค. - ธ.ค.)',
+        'ไตรมาส 2 (ม.ค. - มี.ค.)',
+        'ไตรมาส 3 (เม.ย. - มิ.ย.)',
+        'ไตรมาส 4 (ก.ค. - ก.ย.)'
+      ];
+      const chartQLabels = [
+        'Q1 (ต.ค.-ธ.ค.)',
+        'Q2 (ม.ค.-มี.ค.)',
+        'Q3 (เม.ย.-มิ.ย.)',
+        'Q4 (ก.ค.-ก.ย.)'
+      ];
+
+      const runHoursByQ = [0, 0, 0, 0];
+      const breakHoursByQ = [0, 0, 0, 0];
+      const doseByQ = [0, 0, 0, 0];
+
+      logs.forEach(item => {
+        if (item.fiscalYearBE !== targetFY) return;
+        const qIdx = quarters.indexOf(Number(item.fiscalQuarter));
+        if (qIdx < 0) return;
+
+        if (item.status === 'RUNNING') {
+          runHoursByQ[qIdx] += (item.durationMinutes || 0) / 60;
+          let d = item.absorbedDose || 0;
+          if (item.doseUnit && item.doseUnit !== unit) {
+            if (item.doseUnit === 'Gy' && unit === 'kGy') d = d / 1000;
+            if (item.doseUnit === 'kGy' && unit === 'Gy') d = d * 1000;
+          }
+          doseByQ[qIdx] += d;
+        } else if (item.status === 'BREAKDOWN') {
+          breakHoursByQ[qIdx] += (item.durationMinutes || 0) / 60;
+        }
+      });
+
+      const totalRunHours = runHoursByQ.reduce((a, b) => a + b, 0);
+      const totalBreakHours = breakHoursByQ.reduce((a, b) => a + b, 0);
+      const totalDose = doseByQ.reduce((a, b) => a + b, 0);
+
+      return {
+        unit,
+        qLabels,
+        chartQLabels,
+        runHoursByQ,
+        breakHoursByQ,
+        doseByQ,
+        totalRunHours,
+        totalBreakHours,
+        totalDose
+      };
+    }
+
+    function renderQuarterlyPrintSummaryTable(targetFY, stats) {
+      document.getElementById('printQuarterlyTableTitle').textContent =
+        `ตารางสรุปผลรวมรายไตรมาสและผลรวมทั้ง 4 ไตรมาส (ปีงบประมาณ พ.ศ. ${targetFY})`;
+      document.getElementById('printDoseColHeader').textContent =
+        `จำนวนโดสที่ฉาย (${stats.unit})`;
+
+      const tbody = document.getElementById('printQuarterlyTableBody');
+      const rowsHtml = stats.qLabels.map((label, idx) => `
+        <tr>
+          <td class="font-medium">${label}</td>
+          <td class="text-right font-mono">${stats.runHoursByQ[idx].toFixed(2)} ชม.</td>
+          <td class="text-right font-mono">${stats.breakHoursByQ[idx].toFixed(2)} ชม.</td>
+          <td class="text-right font-mono">${stats.doseByQ[idx].toFixed(3)} ${stats.unit}</td>
+        </tr>
+      `).join('');
+
+      const totalRowHtml = `
+        <tr class="total-row">
+          <td>ผลรวมทั้ง 4 ไตรมาส (Q1 - Q4)</td>
+          <td class="text-right font-mono">${stats.totalRunHours.toFixed(2)} ชม.</td>
+          <td class="text-right font-mono">${stats.totalBreakHours.toFixed(2)} ชม.</td>
+          <td class="text-right font-mono">${stats.totalDose.toFixed(3)} ${stats.unit}</td>
+        </tr>
+      `;
+
+      tbody.innerHTML = rowsHtml + totalRowHtml;
+    }
+
+    function buildQuarterlyPrintChartImages(targetFY, stats) {
+      const unit = stats.unit;
+
+      document.getElementById('printTimeChartTitle').textContent =
+        `เวลาเดินเครื่อง vs Breakdown / PM รายไตรมาส ปีงบ ${targetFY} (ชม.)`;
+      document.getElementById('printDoseChartTitle').textContent =
+        `ปริมาณโดสที่ฉายขณะเดินเครื่อง รายไตรมาส ปีงบ ${targetFY} (${unit})`;
+
+      const timeCanvas = document.createElement('canvas');
+      timeCanvas.width = 760;
+      timeCanvas.height = 420;
+      const timeChart = new Chart(timeCanvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: stats.chartQLabels,
+          datasets: [
+            {
+              label: 'เดินเครื่อง (ชม.)',
+              data: stats.runHoursByQ.map(v => +v.toFixed(2)),
+              backgroundColor: '#10b981',
+              borderColor: '#059669',
+              borderWidth: 1.5,
+              borderRadius: 4
+            },
+            {
+              label: 'Breakdown / PM (ชม.)',
+              data: stats.breakHoursByQ.map(v => +v.toFixed(2)),
+              backgroundColor: '#e11d48',
+              borderColor: '#be123c',
+              borderWidth: 1.5,
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: false,
+          animation: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#1e293b', font: { size: 13, family: 'Chakra Petch' } },
+              grid: { color: '#cbd5e1' },
+              title: { display: true, text: 'ชั่วโมง (Hours)', color: '#0f172a', font: { size: 13, weight: 'bold', family: 'Chakra Petch' } }
+            },
+            x: {
+              ticks: { color: '#0f172a', font: { weight: 'bold', size: 12, family: 'Chakra Petch' } },
+              grid: { display: false }
+            }
+          },
+          plugins: {
+            legend: { position: 'top', labels: { color: '#0f172a', font: { size: 13, weight: 'bold', family: 'Chakra Petch' } } }
+          }
+        }
+      });
+
+      const doseCanvas = document.createElement('canvas');
+      doseCanvas.width = 760;
+      doseCanvas.height = 420;
+      const doseChart = new Chart(doseCanvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: stats.chartQLabels,
+          datasets: [{
+            label: `ปริมาณโดสที่ฉาย (${unit})`,
+            data: stats.doseByQ.map(v => +v.toFixed(3)),
+            backgroundColor: '#7c3aed',
+            borderColor: '#5b21b6',
+            borderWidth: 1.5,
+            borderRadius: 4,
+            barPercentage: 0.55
+          }]
+        },
+        options: {
+          responsive: false,
+          animation: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#1e293b', font: { size: 13, family: 'Chakra Petch' } },
+              grid: { color: '#cbd5e1' },
+              title: { display: true, text: `ปริมาณรังสี (${unit})`, color: '#0f172a', font: { size: 13, weight: 'bold', family: 'Chakra Petch' } }
+            },
+            x: {
+              ticks: { color: '#0f172a', font: { weight: 'bold', size: 12, family: 'Chakra Petch' } },
+              grid: { display: false }
+            }
+          },
+          plugins: {
+            legend: { position: 'top', labels: { color: '#0f172a', font: { size: 13, weight: 'bold', family: 'Chakra Petch' } } }
+          }
+        }
+      });
+
+      document.getElementById('printTimeChartImg').src = timeCanvas.toDataURL('image/png');
+      document.getElementById('printDoseChartImg').src = doseCanvas.toDataURL('image/png');
+
+      timeChart.destroy();
+      doseChart.destroy();
+    }
+
+    function renderLogTable(filtered) {
+      const tbody = document.getElementById('logTableBody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-slate-500">ไม่พบข้อมูลบันทึก Log ในช่วงเวลาที่เลือก</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((item, index) => {
+        const startStr = getThaiDateParts(item.startTimeMs).fullStr;
+        const endStr = getThaiDateParts(item.endTimeMs).fullStr;
+        const activeSrc = item.sources.map((v, i) => v === 1 ? `S${i + 1}` : null).filter(Boolean).join('+') || '-';
+        const u = item.doseUnit || co60Config.unit;
+        const seqLabel = item.arduinoSeq ? `#${item.arduinoSeq}` : `${filtered.length - index}`;
+
+        const badgeClass = item.status === 'RUNNING'
+          ? 'bg-emerald-950 text-emerald-300 border-emerald-500/40'
+          : 'bg-rose-950 text-rose-300 border-rose-500/40';
+
+        const rateDisplay = item.status === 'RUNNING' ? `${(item.doseRatePerMin || 0).toFixed(4)} ${u}` : '-';
+        const doseDisplay = item.status === 'RUNNING' ? `${(item.absorbedDose || 0).toFixed(3)} ${u}` : '-';
+
+        return `
+          <tr class="hover:bg-cyan-950/20 transition">
+            <td class="py-2 px-2.5 font-mono-tech text-xs text-slate-400">${seqLabel}</td>
+            <td class="py-2 px-2.5">
+              <span class="px-2 py-0.5 text-[11px] font-mono-tech font-bold rounded border ${badgeClass}">${item.status}</span>
+            </td>
+            <td class="py-2 px-2.5 font-mono-tech text-xs text-emerald-300">${activeSrc}</td>
+            <td class="py-2 px-2.5 font-mono-tech text-xs">${startStr}</td>
+            <td class="py-2 px-2.5 font-mono-tech text-xs">${endStr}</td>
+            <td class="py-2 px-2.5 font-mono-tech text-xs text-right font-bold text-white">${item.durationMinutes.toFixed(2)}</td>
+            <td class="py-2 px-2.5 font-mono-tech text-xs text-right text-purple-300">${rateDisplay}</td>
+            <td class="py-2 px-2.5 font-mono-tech text-xs text-right font-bold text-emerald-300">${doseDisplay}</td>
+            <td class="py-2 px-2.5 text-xs text-amber-300">ปีงบ ${item.fiscalYearBE} (Q${item.fiscalQuarter})</td>
+            <td class="py-2 px-2.5 text-xs text-slate-300">${item.note}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function printPdfReport() {
+      const filterSelect = document.getElementById('filterModeSelect');
+      if (filterSelect.value !== 'fiscal') {
+        filterSelect.value = 'fiscal';
+        handleFilterModeChange();
+      } else {
+        refreshDashboard();
+      }
+
+      const targetFY = parseInt(document.getElementById('fiscalYearSelect').value, 10);
+      const nowMs = Date.now();
+      const radNow = calculateRadiationAtTime(nowMs);
+      const stats = computeQuarterlyStats(targetFY);
+
+      document.getElementById('printGeneratedAt').textContent = `พิมพ์เมื่อ: ${getThaiDateParts(nowMs).fullStr} น.`;
+      document.getElementById('printCo60Summary').textContent =
+        `Co-60 เริ่มต้น: ${co60Config.initialCurie.toLocaleString()} Ci (ณ ${co60Config.co60RefDay}/${co60Config.co60RefMonth + 1}/${co60Config.co60RefYearBE}) -> ปัจจุบัน ${radNow.currentCurie.toLocaleString('en-US', { maximumFractionDigits: 2 })} Ci | วัน Mapping: ${co60Config.doseRefDay}/${co60Config.doseRefMonth + 1}/${co60Config.doseRefYearBE}`;
+
+      buildQuarterlyPrintChartImages(targetFY, stats);
+      renderQuarterlyPrintSummaryTable(targetFY, stats);
+
+      setTimeout(() => {
+        window.print();
+      }, 150);
+    }
+
+    function saveLogs() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+    }
+
+    function loadLogs() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) logs = JSON.parse(saved);
+      } catch (e) {
+        logs = [];
+      }
+    }
+
+    function clearAllLogs() {
+      if (confirm('ยืนยันการล้างประวัติ Log ทั้งหมดออกจากหน่วยความจำเบราว์เซอร์?')) {
+        logs = [];
+        saveLogs();
+        refreshDashboard();
+      }
+    }
+
+    function seedSampleData() {
+      const now = Date.now();
+      const sampleEvents = [
+        { status: 'RUNNING', sources: [1,1,1,1,1,1], startTimeMs: now - 90000, endTimeMs: now - 45000, note: 'ฉายรังสีทดสอบ 45 วินาที (S1+S2+S3+S4+S5+S6)' },
+        { status: 'BREAKDOWN', sources: [0,0,0,0,0,0], startTimeMs: now - 45000, endTimeMs: now - 20000, note: 'PM ทดสอบ 25 วินาที' },
+        { status: 'RUNNING', sources: [1,1,1,1,0,0], startTimeMs: now - 20000, endTimeMs: now - 5000, note: 'ฉายรังสีทดสอบ 15 วินาที (S1+S2+S3+S4)' }
+      ];
+
+      sampleEvents.reverse().forEach(ev => {
+        const parts = getThaiDateParts(ev.startTimeMs);
+        const durMin = +((ev.endTimeMs - ev.startTimeMs) / 60000).toFixed(2);
+        const snap = calculateRadiationAtTime(ev.startTimeMs);
+        const rate = ev.status === 'RUNNING' ? getCurrentCombinedDoseRateAtTime(ev.startTimeMs, ev.sources) : 0;
+
+        logs.unshift({
+          id: 'SAMPLE-' + ev.startTimeMs,
+          arduinoSeq: null,
+          status: ev.status,
+          acStatus: 'AC_OK',
+          sources: ev.sources,
+          startTimeMs: ev.startTimeMs,
+          endTimeMs: ev.endTimeMs,
+          durationMinutes: durMin,
+          co60CurieSnapshot: +snap.currentCurie.toFixed(2),
+          doseRatePerMin: +rate.toFixed(5),
+          absorbedDose: +(durMin * rate).toFixed(5),
+          doseUnit: co60Config.unit,
+          fiscalYearBE: parts.fiscalYearBE,
+          fiscalQuarter: parts.fiscalQuarter,
+          note: ev.note
+        });
+      });
+      saveLogs();
+      refreshDashboard();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadLogs();
+      initCo60CalibrationUI();
+      initDateSelectors();
+      generateArduinoSampleLogText();
+      const startParts = getThaiDateParts(activeSession.startTimeMs);
+      document.getElementById('sessionStartDisplay').textContent = `เริ่มรอบ: ${startParts.timeStr} น.`;
+      renderSourceCards();
+      updateMainStatusVisuals('STOP');
+      refreshDashboard();
+      updateLiveClock();
+      setInterval(updateLiveClock, 1000);
+    });
+  </script>
+</body>
+</html>
