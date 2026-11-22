@@ -2,7 +2,27 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" id="viewportMeta" content="width=device-width, initial-scale=1.0" />
+  <script>
+    // ตรวจจับโทรศัพท์ก่อนวาดหน้า เพื่อไม่ให้เห็นเลย์เอาต์เดสก์ท็อปแวบขึ้นมา
+    (function () {
+      try {
+        var saved = localStorage.getItem('gamma_ui_mode_v1');
+        var ua = navigator.userAgent || '';
+        var phone = /Android.*Mobile|iPhone|iPod|Windows Phone|BlackBerry|Opera Mini|IEMobile/i.test(ua)
+          || ((navigator.maxTouchPoints || 0) > 0 && Math.min(screen.width || 99999, window.innerWidth || 99999) <= 600);
+        if (!phone) return;
+        document.documentElement.classList.add('is-mobile-device');
+        if (saved === 'desktop') {
+          var m = document.querySelector('meta[name="viewport"]');
+          if (m) m.setAttribute('content', 'width=1200');
+          document.documentElement.classList.remove('is-phone');
+        } else {
+          document.documentElement.classList.add('is-phone');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <title>Gamma Irradiator 6-Source Telemetry & Dosimetry Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -33,14 +53,8 @@
       min-height: 100vh;
     }
 
-    .font-orbitron {
-      font-family: 'Orbitron', sans-serif;
-    }
-
-    .font-mono-tech {
-      font-family: 'Chakra Petch', monospace;
-      font-variant-numeric: tabular-nums;
-    }
+    .font-orbitron { font-family: 'Orbitron', sans-serif; }
+    .font-mono-tech { font-family: 'Chakra Petch', monospace; font-variant-numeric: tabular-nums; }
 
     .hud-panel {
       background: var(--panel-bg);
@@ -108,53 +122,37 @@
     }
 
     @media print {
-      @page {
-        size: A4 portrait;
-        margin: 10mm 10mm;
-      }
-
+      @page { size: A4 portrait; margin: 10mm 10mm; }
       body {
         background: #ffffff !important;
         background-image: none !important;
         color: #0f172a !important;
         font-size: 11pt;
       }
-
-      .no-print {
-        display: none !important;
-      }
-
+      .no-print { display: none !important; }
       .hud-panel {
         background: #ffffff !important;
         border: 1px solid #cbd5e1 !important;
         box-shadow: none !important;
         color: #0f172a !important;
       }
-
       #printHeader {
         display: block !important;
         border-bottom: 2px solid #0f172a;
         padding-bottom: 8px;
         margin-bottom: 10px;
       }
-
       #kpiSummaryGrid {
         display: grid !important;
         grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
         gap: 8px !important;
         margin-bottom: 10px !important;
       }
-
-      #kpiSummaryGrid .hud-panel {
-        padding: 8px 10px !important;
-      }
-
-      #kpiSummaryGrid .text-xl,
-      #kpiSummaryGrid .text-2xl {
+      #kpiSummaryGrid .hud-panel { padding: 8px 10px !important; }
+      #kpiSummaryGrid .text-xl, #kpiSummaryGrid .text-2xl {
         font-size: 13pt !important;
         color: #0f172a !important;
       }
-
       #printChartsSection {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -163,53 +161,44 @@
         break-inside: avoid;
         page-break-inside: avoid;
       }
-
       .print-chart-box {
         border: 1px solid #cbd5e1;
         border-radius: 6px;
         padding: 8px;
         background: #ffffff;
       }
-
       .print-chart-box img {
         width: 100%;
         height: 225px;
         object-fit: contain;
         display: block;
       }
-
       #printQuarterlyTableSection {
         display: block !important;
         margin-bottom: 14px !important;
         break-inside: avoid;
         page-break-inside: avoid;
       }
-
       .print-q-table {
         width: 100%;
         border-collapse: collapse;
         font-size: 10.5pt;
       }
-
-      .print-q-table th,
-      .print-q-table td {
+      .print-q-table th, .print-q-table td {
         border: 1px solid #94a3b8;
         padding: 5px 8px;
       }
-
       .print-q-table th {
         background: #f1f5f9;
         color: #0f172a;
         font-weight: 700;
       }
-
       .print-q-table tr.total-row td {
         background: #e2e8f0;
         font-weight: 700;
         color: #0f172a;
         border-top: 2px solid #334155;
       }
-
       .print-signatures {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -219,9 +208,722 @@
         page-break-inside: avoid;
       }
     }
+    /* ================= SPACE / SCI-FI SHELL ================= */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(1.6px 1.6px at 20% 30%, rgba(255,255,255,0.85), transparent 60%),
+        radial-gradient(1px 1px at 72% 18%, rgba(0,240,255,0.85), transparent 60%),
+        radial-gradient(1.4px 1.4px at 42% 82%, rgba(168,85,247,0.7), transparent 60%),
+        radial-gradient(1px 1px at 86% 66%, rgba(255,255,255,0.65), transparent 60%),
+        radial-gradient(1px 1px at 9% 62%, rgba(16,185,129,0.6), transparent 60%);
+      background-size: 280px 280px, 420px 420px, 360px 360px, 520px 520px, 640px 640px;
+      background-repeat: repeat;
+      opacity: 0.55;
+      animation: starDrift 140s linear infinite;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 240, 255, 0.045) 0px,
+        rgba(0, 240, 255, 0.045) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+      opacity: 0.35;
+      animation: scanLines 12s linear infinite;
+    }
+
+    body > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hud-panel {
+      position: relative;
+    }
+
+    .hud-panel::before,
+    .hud-panel::after {
+      content: "";
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      pointer-events: none;
+      opacity: 0.55;
+      z-index: 1;
+    }
+
+    .hud-panel::before {
+      top: -1px;
+      left: -1px;
+      border-top: 2px solid rgba(0, 240, 255, 0.65);
+      border-left: 2px solid rgba(0, 240, 255, 0.65);
+    }
+
+    .hud-panel::after {
+      bottom: -1px;
+      right: -1px;
+      border-bottom: 2px solid rgba(0, 240, 255, 0.65);
+      border-right: 2px solid rgba(0, 240, 255, 0.65);
+    }
+
+    /* ---------- page navigation ---------- */
+    .page-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 11px 15px;
+      margin-bottom: 22px;
+      position: sticky;
+      top: 8px;
+      z-index: 40;
+      border-color: rgba(0, 240, 255, 0.28);
+    }
+
+    .page-nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 190px;
+    }
+
+    .page-nav-sub {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      color: #475569;
+      margin-top: 1px;
+    }
+
+    .nav-orb {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 12px var(--neon-cyan), 0 0 26px rgba(0, 240, 255, 0.5);
+      animation: orbPulse 2.2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    .page-tabs {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .page-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .page-tab {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 6px;
+      background: rgba(2, 6, 23, 0.62);
+      color: #94a3b8;
+      min-width: 182px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.25s ease, background 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+    }
+
+    .page-tab:hover {
+      border-color: rgba(0, 240, 255, 0.5);
+      background: rgba(8, 47, 73, 0.45);
+      color: #e2e8f0;
+      transform: translateY(-1px);
+    }
+
+    .page-tab.active {
+      border-color: rgba(0, 240, 255, 0.85);
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.14), rgba(168, 85, 247, 0.10));
+      color: #ffffff;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.18), inset 0 0 16px rgba(0, 240, 255, 0.06);
+    }
+
+    .page-tab.active::after {
+      content: "";
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      bottom: -1px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+      box-shadow: 0 0 10px var(--neon-cyan);
+      animation: tabGlow 2.4s ease-in-out infinite;
+    }
+
+    .page-tab-num {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      color: #22d3ee;
+      border: 1px solid rgba(34, 211, 238, 0.35);
+      padding: 2px 5px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .page-tab.active .page-tab-num {
+      background: rgba(0, 240, 255, 0.18);
+      color: #ffffff;
+    }
+
+    .page-tab-body {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+    }
+
+    .page-tab-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+    }
+
+    .page-tab-sub {
+      font-size: 9px;
+      color: #64748b;
+      white-space: nowrap;
+    }
+
+    .page-tab.active .page-tab-sub {
+      color: #a5f3fc;
+    }
+
+    /* ---------- page transitions / headings ---------- */
+    .page-view {
+      display: none;
+    }
+
+    .page-view.active {
+      display: block;
+      animation: pageEnter 0.48s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .page-heading {
+      margin: 0 0 18px 2px;
+      padding-left: 12px;
+      border-left: 2px solid rgba(0, 240, 255, 0.5);
+    }
+
+    .page-heading-kicker {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.32em;
+      color: #22d3ee;
+    }
+
+    .page-heading-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(20px, 2vw, 28px);
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: #f8fafc;
+      margin-top: 2px;
+      text-shadow: 0 0 18px rgba(0, 240, 255, 0.25);
+    }
+
+    .page-heading-desc {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* ---------- link diagnostics cards ---------- */
+    .diag-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      color: #22d3ee;
+      margin-bottom: 6px;
+    }
+
+    .diag-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 8px;
+      word-break: break-word;
+      line-height: 1.35;
+    }
+
+    .diag-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 11px;
+      color: #64748b;
+      padding: 3px 0;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.08);
+    }
+
+    .diag-line b {
+      color: #cbd5e1;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .diag-note {
+      font-size: 10px;
+      color: #475569;
+      margin-top: 8px;
+    }
+
+    /* ---------- save log menu ---------- */
+    .save-menu {
+      position: relative;
+      display: inline-block;
+    }
+
+    .save-menu > summary {
+      list-style: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      background: rgba(6, 78, 59, 0.25);
+      color: #a7f3d0;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .save-menu > summary::-webkit-details-marker { display: none; }
+
+    .save-menu[open] > summary {
+      border-color: #34d399;
+      background: rgba(6, 78, 59, 0.45);
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.25);
+    }
+
+    .save-menu-panel {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      z-index: 60;
+      min-width: 250px;
+      padding: 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(16, 185, 129, 0.45);
+      background: rgba(2, 6, 23, 0.98);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .save-menu-panel button {
+      text-align: left;
+      padding: 8px 10px;
+      border-radius: 5px;
+      border: 0;
+      background: transparent;
+      color: #d1fae5;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .save-menu-panel button:hover {
+      background: rgba(16, 185, 129, 0.18);
+    }
+
+    /* ---------- connection toast + sound toggle ---------- */
+    .sound-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 24px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      background: rgba(2, 6, 23, 0.8);
+      color: #a5f3fc;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .sound-toggle:hover {
+      border-color: rgba(0, 240, 255, 0.8);
+      background: rgba(8, 47, 73, 0.7);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      z-index: 90;
+      max-width: min(460px, calc(100vw - 24px));
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 240, 255, 0.45);
+      background: rgba(2, 6, 23, 0.97);
+      color: #e2e8f0;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.45;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast-success {
+      border-color: rgba(16, 185, 129, 0.8);
+      box-shadow: 0 0 22px rgba(16, 185, 129, 0.25), 0 12px 34px rgba(0, 0, 0, 0.55);
+    }
+
+    .toast-error {
+      border-color: rgba(244, 63, 94, 0.85);
+      box-shadow: 0 0 22px rgba(244, 63, 94, 0.25), 0 12px 34px rgba(0, 0, 0, 0.55);
+    }
+
+    .toast-info {
+      border-color: rgba(0, 240, 255, 0.55);
+    }
+
+    .toast-warn {
+      border-color: rgba(245, 158, 11, 0.8);
+      box-shadow: 0 0 22px rgba(245, 158, 11, 0.2), 0 12px 34px rgba(0, 0, 0, 0.55);
+    }
+
+    @media (max-width: 600px) {
+      .toast {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+      }
+    }
+
+    /* ---------- compact control deck (fit one screen @1920x1080) ---------- */
+    body > header {
+      padding: 12px 16px !important;
+      margin-bottom: 14px !important;
+    }
+
+    body > header h1 {
+      font-size: clamp(18px, 1.45vw, 23px) !important;
+    }
+
+    body > header p {
+      font-size: 11px !important;
+    }
+
+    .page-nav {
+      padding: 8px 12px !important;
+      margin-bottom: 14px !important;
+    }
+
+    .page-tab {
+      padding: 7px 12px !important;
+      min-width: 168px !important;
+    }
+
+    #page-control .page-heading { margin-bottom: 10px !important; }
+    #page-control .page-heading-title { font-size: clamp(18px, 1.5vw, 23px) !important; }
+    #page-control .page-heading-desc { font-size: 10px !important; }
+    #page-control .hud-panel { padding: 12px !important; }
+    #page-control .mb-5 { margin-bottom: 12px !important; }
+
+    #co60Section { padding: 12px !important; }
+    #co60ActivityCard,
+    #co60MappingCard { padding: 10px !important; }
+    #co60ActivityCard {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    #telemetrySection { gap: 12px !important; }
+    #mainStateCard { padding: 12px !important; }
+    #mainStateCard .mt-4 { margin-top: 10px !important; }
+    #mainStateCard .mt-5 { margin-top: 10px !important; }
+    #mainStateCard .pt-4 { padding-top: 10px !important; }
+    #mainStateCard [class*="p-3.5"] { padding: 10px !important; }
+    #currentStateLabel { font-size: clamp(22px, 2.1vw, 30px) !important; }
+    #currentStateSub { font-size: 12px !important; }
+    #liveSessionTimer,
+    #liveSessionDose { font-size: clamp(18px, 1.6vw, 22px) !important; }
+
+    #sourceGridWrap { gap: 10px !important; }
+    #sourceGrid button { padding: 9px !important; }
+    #sourceGrid button .w-9 { width: 2rem !important; height: 2rem !important; }
+
+    #co60MappingCard .space-y-3 > * + * { margin-top: 8px !important; }
+    #co60MappingCard > div.mb-3 { margin-bottom: 8px !important; }
+    #co60MappingCard .p-3 { padding: 8px !important; }
+    #co60MappingCard .py-1\.5 { padding-top: 3px !important; padding-bottom: 3px !important; }
+    #co60MappingCard label { margin-bottom: 3px !important; }
+    #co60MappingCard .mt-2\.5 { margin-top: 6px !important; }
+
+    #mainStateCard .pb-3 { padding-bottom: 6px !important; }
+    #mainStateCard .mb-4 { margin-bottom: 6px !important; }
+    #mainStateCard .my-2 { margin-top: 4px !important; margin-bottom: 4px !important; }
+    #mainStateCard [class*="p-3.5"] { padding: 8px !important; }
+    #mainStateCard .mt-5 { margin-top: 6px !important; }
+    #mainStateCard .pt-4 { padding-top: 6px !important; }
+
+    @media (max-height: 1000px) {
+      body > header { margin-bottom: 10px !important; }
+      .page-nav { margin-bottom: 10px !important; }
+      body > header p { display: none !important; }
+      #page-control .page-heading { margin-bottom: 0 !important; }
+      #page-control .page-heading-title { font-size: 18px !important; }
+      #page-control .page-heading-desc { display: none !important; }
+      #page-control .page-heading-kicker { font-size: 8px !important; }
+      #page-control .mb-5 { margin-bottom: 6px !important; }
+      #co60Section { padding: 10px !important; }
+    }
+
+    /* ---------- micro interactions ---------- */
+    #sourceGrid button {
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    #sourceGrid button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 240, 255, 0.12);
+    }
+
+    #kpiSummaryGrid > div {
+      transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    #kpiSummaryGrid > div:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+    }
+
+    @keyframes pageEnter {
+      from { opacity: 0.75; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes starDrift {
+      from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
+      to { background-position: 280px 560px, -420px 420px, 360px -720px, -520px 520px, 640px 320px; }
+    }
+
+    @keyframes scanLines {
+      from { transform: translateY(0); }
+      to { transform: translateY(8px); }
+    }
+
+    @keyframes orbPulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--neon-cyan), 0 0 22px rgba(0, 240, 255, 0.35); }
+      50% { opacity: 0.55; box-shadow: 0 0 4px var(--neon-cyan), 0 0 10px rgba(0, 240, 255, 0.2); }
+    }
+
+    @keyframes tabGlow {
+      0%, 100% { opacity: 0.45; }
+      50% { opacity: 1; }
+    }
+
+    @media (max-width: 900px) {
+      .page-nav-brand { display: none; }
+      .page-tab { min-width: 150px; padding: 8px 10px; }
+      .page-tab-sub { display: none; }
+      .page-nav { top: 4px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+
+    /* ================= PHONE MODE ================= */
+    .device-mode-toggle {
+      display: none;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 240, 255, 0.55);
+      background: rgba(2, 6, 23, 0.92);
+      color: #a5f3fc;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.16);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    html.is-mobile-device .device-mode-toggle { display: inline-flex; }
+
+    html.is-phone body {
+      padding: 10px 8px 20px !important;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    html.is-phone body > * { min-width: 0; max-width: 100%; }
+    html.is-phone .page-view.active { animation: none; }
+    html.is-phone body > header { align-items: stretch !important; }
+    html.is-phone body > header > div { width: 100%; min-width: 0; }
+    html.is-phone body > header h1 {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      max-width: 100%;
+    }
+    html.is-phone body::before { animation: none; opacity: 0.3; }
+    html.is-phone body::after { display: none; }
+    html.is-phone body > header {
+      padding: 10px 12px !important;
+      margin-bottom: 10px !important;
+      border-radius: 10px;
+    }
+    html.is-phone body > header h1 {
+      font-size: 17px !important;
+      line-height: 1.22 !important;
+      letter-spacing: 0.02em !important;
+    }
+    html.is-phone body > header p { display: none !important; }
+    html.is-phone body > header > div:last-child {
+      width: 100%;
+      justify-content: space-between;
+    }
+    html.is-phone #liveThaiClock { font-size: 12px !important; }
+    html.is-phone #connStatusText { font-size: 11px; }
+    html.is-phone #toggleModeBtn { padding: 6px 8px !important; font-size: 10px !important; }
+    html.is-phone .page-nav {
+      padding: 6px !important;
+      top: 4px !important;
+      margin-bottom: 10px !important;
+      border-radius: 8px;
+    }
+    html.is-phone .page-nav-brand { display: none !important; }
+    html.is-phone .page-tabs { gap: 5px; width: 100%; min-width: 0; }
+    html.is-phone .page-tab {
+      flex: 1 1 0;
+      min-width: 0 !important;
+      padding: 8px 4px !important;
+      justify-content: center;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    html.is-phone .page-tab-num { font-size: 8px; padding: 1px 3px; flex-shrink: 0; }
+    html.is-phone .page-tab-title {
+      font-size: 9px;
+      letter-spacing: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    html.is-phone .page-tab-sub { display: none !important; }
+    html.is-phone .page-heading {
+      margin: 2px 0 8px 2px !important;
+      padding-left: 8px !important;
+    }
+    html.is-phone .page-heading-title { font-size: 18px !important; }
+    html.is-phone .page-heading-desc { display: none !important; }
+    html.is-phone .page-heading-kicker { font-size: 8px !important; }
+    html.is-phone .hud-panel { padding: 10px !important; }
+    html.is-phone .mb-5 { margin-bottom: 10px !important; }
+    html.is-phone #page-control .hud-panel { padding: 10px !important; }
+    html.is-phone #co60Section { padding: 8px !important; }
+    html.is-phone #co60ActivityCard,
+    html.is-phone #co60MappingCard { display: block !important; padding: 8px !important; }
+    html.is-phone #co60ActivityCard .mt-3 { margin-top: 8px !important; }
+    html.is-phone #currentStateLabel { font-size: 24px !important; }
+    html.is-phone #currentStateSub { font-size: 11px !important; }
+    html.is-phone #mainStateCard { padding: 10px !important; }
+    html.is-phone #mainStateCard .mt-4 { margin-top: 8px !important; }
+    html.is-phone #mainStateCard .mt-5 { margin-top: 8px !important; }
+    html.is-phone #mainStateCard .pt-4 { padding-top: 8px !important; }
+    html.is-phone #mainStateCard [class*="p-3.5"] { padding: 8px !important; }
+    html.is-phone #sourceGridWrap {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+    }
+    html.is-phone #sourceGrid button { padding: 8px !important; }
+    html.is-phone #sourceGrid button .w-9 { width: 1.85rem !important; height: 1.85rem !important; }
+    html.is-phone #kpiSummaryGrid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+    }
+    html.is-phone #kpiSummaryGrid > div { padding: 10px !important; }
+    html.is-phone #kpiSummaryGrid .text-xl,
+    html.is-phone #kpiSummaryGrid .text-2xl { font-size: 17px !important; }
+    html.is-phone #filterModeSelect,
+    html.is-phone #fiscalYearSelect,
+    html.is-phone #fiscalQuarterSelect { width: 100%; }
+    html.is-phone #logTableBody { font-size: 11px; }
+    html.is-phone table { min-width: 860px; }
+    html.is-phone #arduinoLogEditorTextarea { font-size: 11px; }
+    html.is-phone .diag-value { font-size: 12px; }
+    html.is-phone .scifi-checkbox { width: 26px; height: 26px; }
+    html.is-phone button,
+    html.is-phone select,
+    html.is-phone input[type="text"],
+    html.is-phone input[type="number"] { min-height: 38px; }
+    html.is-phone .page-tab { min-height: 42px; }
+    html.is-phone .hud-panel::before,
+    html.is-phone .hud-panel::after { opacity: 0.35; }
+
+    @media print {
+      .device-mode-toggle,
+      .sound-toggle,
+      #appToast { display: none !important; }
+      html.is-phone table { min-width: 0 !important; }
+    }
+
+    @media print {
+      body::before,
+      body::after,
+      .page-nav,
+      .page-heading {
+        display: none !important;
+      }
+      .page-view { display: none !important; }
+      .page-view.active {
+        display: block !important;
+        animation: none !important;
+        filter: none !important;
+        transform: none !important;
+      }
+    }
+
   </style>
 </head>
-<body class="p-3 md:p-6 max-w-[1440px] mx-auto">
+<body class="w-full max-w-none mx-0 p-3 md:p-5 xl:p-6">
 
   <!-- หัวกระดาษสำหรับรายงาน PDF เท่านั้น -->
   <div id="printHeader" class="hidden">
@@ -251,6 +953,13 @@
         <span id="acMainsBadge" class="text-xs font-mono-tech text-emerald-300 px-2 py-0.5 border border-emerald-500/40 bg-emerald-950/40 rounded">
           AC MAINS: NORMAL
         </span>
+        <span id="hwStatusBadge" class="text-xs font-mono-tech text-slate-300 px-2 py-0.5 border border-slate-600 bg-slate-900/80 rounded">
+          HW: SIMULATION
+        </span>
+        <button id="deviceModeToggle" type="button" class="device-mode-toggle no-print" onclick="toggleDeviceMode()" title="สลับโหมดมือถือ / เดสก์ท็อป">
+          📱 PHONE MODE
+        </button>
+        <button id="soundToggleBtn" type="button" class="sound-toggle no-print" onclick="toggleSound()" title="เปิด/ปิดเสียงแจ้งเตือน" aria-label="เปิด/ปิดเสียงแจ้งเตือน">🔔</button>
       </div>
       <h1 class="text-xl md:text-2xl font-orbitron font-bold tracking-wider text-white mt-1.5">
         6-SOURCE IRRADIATION & DOSIMETRY <span class="text-cyan-400">COMMAND</span>
@@ -270,7 +979,7 @@
         <span id="connIndicator" class="w-3 h-3 rounded-full bg-amber-400 animate-pulse"></span>
         <div class="text-xs">
           <div id="connStatusText" class="font-bold text-amber-300">โหมดจำลอง (SIMULATION)</div>
-          <div class="text-[10px] text-slate-400 font-mono-tech">LAN: 192.168.10.1</div>
+          <div id="connIpSubText" class="text-[10px] text-slate-400 font-mono-tech">LAN: 192.168.10.1</div>
         </div>
         <button id="toggleModeBtn" onclick="toggleConnectionMode()" class="ml-2 px-2.5 py-1 text-xs font-bold rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/50 transition">
           สลับเป็น Arduino จริง
@@ -279,8 +988,50 @@
     </div>
   </header>
 
-  <!-- แผงเชื่อมต่อ & จำลองการรับ-ส่ง Log กับ Arduino SD Card -->
-  <section class="hud-panel rounded-lg p-4 mb-5 border-emerald-500/40 no-print">
+  <!-- ================= PAGE NAVIGATION ================= -->
+  <nav class="page-nav hud-panel no-print" aria-label="Page navigation">
+    <div class="page-nav-brand">
+      <span class="nav-orb"></span>
+      <div>
+        <div class="font-orbitron text-[11px] tracking-[0.28em] text-cyan-300">GAMMA // CONSOLE</div>
+        <div class="page-nav-sub">ISOLATED CONTROL NETWORK</div>
+      </div>
+    </div>
+    <div class="page-tabs" role="tablist" aria-label="Dashboard pages">
+      <button type="button" class="page-tab active" data-page="control" role="tab" aria-selected="true">
+        <span class="page-tab-num">01</span>
+        <span class="page-tab-body">
+          <span class="page-tab-title">CONTROL DECK</span>
+          <span class="page-tab-sub">Calibration • Source Telemetry</span>
+        </span>
+      </button>
+      <button type="button" class="page-tab" data-page="sync" role="tab" aria-selected="false">
+        <span class="page-tab-num">02</span>
+        <span class="page-tab-body">
+          <span class="page-tab-title">LOG SYNC</span>
+          <span class="page-tab-sub">SD Card • Import / Export</span>
+        </span>
+      </button>
+      <button type="button" class="page-tab" data-page="reports" role="tab" aria-selected="false">
+        <span class="page-tab-num">03</span>
+        <span class="page-tab-body">
+          <span class="page-tab-title">REPORTS</span>
+          <span class="page-tab-sub">Fiscal Year • PDF</span>
+        </span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ================= PAGE 02 : LOG SYNC ================= -->
+  <div id="page-sync" class="page-view">
+    <div class="page-heading no-print">
+      <div class="page-heading-kicker">02 // DATA LINK</div>
+      <h2 class="page-heading-title">LOG SYNC</h2>
+      <p class="page-heading-desc">เชื่อมต่อ Arduino / ดึง CSV จาก SD Card / ตรวจ CRC32 และนำเข้า-ส่งออก Log</p>
+    </div>
+
+    <!-- แผงเชื่อมต่อ & จำลองการรับ-ส่ง Log กับ Arduino SD Card -->
+    <section class="hud-panel rounded-lg p-4 mb-5 border-emerald-500/40 no-print">
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-emerald-500/20 pb-3 mb-3">
       <div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -290,14 +1041,18 @@
           <span id="autoArduinoStatusBadge" class="text-xs font-mono-tech px-2.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-amber-300">
             AUTO WRITE: OFF (MANUAL / SIM)
           </span>
+          <span id="logFreshnessBadge" class="text-xs font-mono-tech px-2.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300">
+            LOG: ยังไม่ได้เชื่อมต่อ
+          </span>
         </div>
         <p class="text-xs text-slate-400 mt-1">
-          รับสถานะสด (<code class="text-cyan-300">/status</code>) ทุก 1 วินาที • ดึงไฟล์ <code class="text-emerald-300">/LOGS.CSV</code> จาก SD Card • ส่ง Log ขึ้น Arduino หรือทดสอบแก้ไข/Import CSV พร้อมตรวจ CRC32
+          รับสถานะสด (<code class="text-cyan-300">/status</code>) ทุก 1 วินาที • ดึงไฟล์ CSV ผ่าน <code class="text-emerald-300">GET /logs</code> จาก SD Card • ตรวจความสดของ log เทียบ <code class="text-cyan-300">next_seq / last_log_end_epoch / เวลาบอร์ด</code> • ส่ง Log ขึ้น Arduino หรือทดสอบแก้ไข/Import CSV พร้อมตรวจ CRC32 • <span class="text-amber-300">IP บอร์ด 192.168.10.1 (DHCP เฉพาะ link นี้) — เครื่อง dashboard ได้ 192.168.10.2 อัตโนมัติ โดยไม่มี gateway/DNS ไปยุ่งกับเน็ตองค์กร</span>
         </p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
         <input type="text" id="arduinoEndpointInput" value="http://192.168.10.1"
+          oninput="updateEndpointLabel()"
           class="w-44 bg-slate-950 border border-emerald-500/40 rounded px-2.5 py-1.5 font-mono-tech text-xs text-emerald-200 focus:outline-none focus:border-emerald-400"
           placeholder="http://192.168.10.1" />
         <button type="button" id="toggleAutoArduinoBtn" onclick="toggleAutoWriteToArduino()"
@@ -312,6 +1067,13 @@
           class="px-3 py-1.5 rounded bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-200 border border-indigo-400/50 text-xs font-bold transition">
           ↓ ดึง Log จาก Arduino
         </button>
+        <details class="save-menu no-print">
+          <summary>💾 บันทึก Log ลงคอม ▾</summary>
+          <div class="save-menu-panel">
+            <button type="button" onclick="saveLogFile('csv')">CSV — Arduino 9 คอลัมน์</button>
+            <button type="button" onclick="saveLogFile('json')">JSON — Log + Config/Presets</button>
+          </div>
+        </details>
       </div>
     </div>
 
@@ -356,12 +1118,49 @@
     </div>
 
     <div id="autoArduinoLogFeedback" class="mt-2 font-mono-tech text-[11px] text-slate-400">
-      โหมดเขียน Log อัตโนมัติปิดอยู่ (กด "เปิดเขียน Log อัตโนมัติ" เพื่อให้ส่ง Log ไปยัง IP ของ Arduino ทุกครั้งที่จบรอบ)
+      โหมดเขียน Log อัตโนมัติปิดอยู่ (ในโหมด Arduino จริง บอร์ดจะบันทึกลง SD Card อัตโนมัติอยู่แล้ว)
     </div>
   </section>
 
-  <!-- CO-60 DECAY & COMBINED DOSE RATE SECTION -->
-  <section class="hud-panel rounded-lg p-4 mb-5 border-purple-500/40 no-print">
+    <!-- LINK DIAGNOSTICS -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5 no-print">
+      <div class="hud-panel rounded-lg p-4 border-cyan-500/30">
+        <div class="diag-label">NETWORK PROFILE</div>
+        <div class="diag-value" id="diagEndpointValue">http://192.168.10.1</div>
+        <label class="block text-[9px] font-mono-tech text-cyan-400/80 mt-1 mb-0.5 uppercase tracking-wider">API TOKEN (ต้องตรงกับ Firmware)</label>
+        <input id="apiTokenInput" type="password" autocomplete="off" oninput="saveApiToken()"
+          class="w-full bg-slate-950 border border-cyan-500/40 rounded px-2 py-1 text-[11px] font-mono-tech text-cyan-100 focus:outline-none focus:border-cyan-300"
+          placeholder="X-API-Token" />
+        <div class="diag-line mt-2"><span>DHCP lease</span><b>192.168.10.2</b></div>
+        <div class="diag-line"><span>Gateway / DNS</span><b class="text-amber-300">ไม่ส่ง (isolated)</b></div>
+        <div class="diag-note">Wi-Fi / เน็ตองค์กรไม่ถูกแก้ไข — link นี้มีไว้เฉพาะ dashboard</div>
+      </div>
+      <div class="hud-panel rounded-lg p-4 border-emerald-500/30">
+        <div class="diag-label">LOG FRESHNESS</div>
+        <div id="diagFreshnessValue" class="diag-value text-emerald-300">ยังไม่ได้เชื่อมต่อ</div>
+        <div class="diag-line"><span>Last sync</span><b id="diagLastSyncValue">-</b></div>
+        <div class="diag-line"><span>Trust checks</span><b>seq / last_log / clock</b></div>
+      </div>
+      <div class="hud-panel rounded-lg p-4 border-purple-500/30">
+        <div class="diag-label">ISOLATION / SECURITY</div>
+        <div class="diag-line"><span>DHCP lease</span><b class="text-emerald-300">any PC on direct cable (.2)</b></div>
+        <div class="diag-line"><span>Default route</span><b class="text-emerald-300">ไม่ถูกเปลี่ยน</b></div>
+        <div class="diag-line"><span>Connection</span><b class="text-cyan-300">DIRECT CABLE ONLY</b></div>
+        <div class="diag-note">ห้ามต่อ Arduino เข้า switch/LAN ของ IT</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= PAGE 01 : CONTROL DECK ================= -->
+  <div id="page-control" class="page-view active">
+    <div class="page-heading no-print">
+      <div class="page-heading-kicker">01 // OPERATIONS</div>
+      <h2 class="page-heading-title">CONTROL DECK</h2>
+      <p class="page-heading-desc">ตั้งค่า Co-60 / Dose Mapping • ติดตาม Source 1-6 • บันทึก Breakdown / PM</p>
+    </div>
+
+    <!-- CO-60 DECAY & COMBINED DOSE RATE SECTION -->
+  <section id="co60Section" class="hud-panel rounded-lg p-4 mb-5 border-purple-500/40 no-print">
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-purple-500/30 pb-3 mb-4">
       <div class="flex flex-wrap items-center gap-2.5">
         <span class="px-2 py-0.5 text-xs font-mono-tech font-bold bg-purple-950 text-purple-300 border border-purple-400/50 rounded">ISOTOPE: Co-60 (T½ = 5.2714 YRS)</span>
@@ -377,17 +1176,20 @@
           📂 Import Config & Presets (.JSON)
           <input type="file" id="importConfigJsonInput" accept=".json,application/json" onchange="handleConfigJsonUpload(event)" class="hidden" />
         </label>
-        <label class="text-xs text-slate-400 ml-1">หน่วยปริมาณรังสี:</label>
-        <select id="doseUnitSelect" onchange="saveCo60Settings()" class="bg-slate-950 border border-purple-500/50 rounded px-2.5 py-1 text-xs font-mono-tech text-purple-200 focus:outline-none">
-          <option value="kGy">kGy (กิโลเกรย์)</option>
-          <option value="Gy">Gy (เกรย์)</option>
-        </select>
+        <div class="flex items-center gap-1.5">
+          <label class="text-xs text-slate-400">หน่วยปริมาณรังสี:</label>
+          <select id="doseUnitSelect" onchange="saveCo60Settings()" class="bg-slate-950 border border-purple-500/50 rounded px-2.5 py-1 text-xs font-mono-tech text-purple-200 focus:outline-none">
+            <option value="kGy">kGy (กิโลเกรย์)</option>
+            <option value="Gy">Gy (เกรย์)</option>
+          </select>
+        </div>
       </div>
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
-      <div class="xl:col-span-7 space-y-4">
-        <div class="bg-slate-950/75 border border-purple-500/30 rounded-lg p-3.5">
+      <div class="xl:col-span-8 grid grid-cols-1 xl:grid-cols-2 gap-3 min-w-0">
+        <!-- SECTION A -->
+        <div id="co60ActivityCard" class="bg-slate-950/75 border border-purple-500/30 rounded-lg p-3.5">
           <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
             <span class="text-xs font-mono-tech text-purple-300 uppercase font-bold">A. วันอ้างอิงความแรงรังสี Co-60 (ACTIVITY REFERENCE)</span>
             <span id="co60DecayBadge" class="text-[11px] font-mono-tech text-purple-200">Decay: 1.000000</span>
@@ -404,46 +1206,60 @@
             <div>
               <label class="block text-xs text-slate-300 mb-1">ณ วันที่อ้างอิง Co-60 (วัน/เดือน/ปี พ.ศ.)</label>
               <div class="grid grid-cols-3 gap-1.5">
-                <select id="co60RefDay" onchange="saveCo60Settings()" class="bg-slate-900 border border-purple-500/40 rounded px-1.5 py-1.5 text-xs text-white"></select>
-                <select id="co60RefMonth" onchange="saveCo60Settings()" class="bg-slate-900 border border-purple-500/40 rounded px-1.5 py-1.5 text-xs text-white"></select>
-                <select id="co60RefYearBE" onchange="saveCo60Settings()" class="bg-slate-900 border border-purple-500/40 rounded px-1.5 py-1.5 text-xs text-white"></select>
+                <select id="co60RefDay" onchange="saveCo60Settings()" class="w-full min-w-0 bg-slate-900 border border-purple-500/40 rounded px-1.5 py-1.5 text-xs text-white"></select>
+                <select id="co60RefMonth" onchange="saveCo60Settings()" class="w-full min-w-0 bg-slate-900 border border-purple-500/40 rounded px-1.5 py-1.5 text-xs text-white"></select>
+                <select id="co60RefYearBE" onchange="saveCo60Settings()" class="w-full min-w-0 bg-slate-900 border border-purple-500/40 rounded px-1.5 py-1.5 text-xs text-white"></select>
               </div>
             </div>
           </div>
+          <div class="mt-3 flex items-center justify-between gap-2 text-[10px] font-mono-tech text-purple-300/70 border-t border-purple-500/15 pt-2">
+            <span>MODEL: A(t) = A₀ · e^(−λt)</span>
+            <span>T½ = 5.2714 Y</span>
+          </div>
         </div>
 
-        <div class="bg-slate-950/75 border border-cyan-500/30 rounded-lg p-3.5">
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+        <!-- SECTION B (แก้ไข Layout ไม่ให้ปุ่มมุดล้นกรอบ) -->
+        <div id="co60MappingCard" class="bg-slate-950/75 border border-cyan-500/30 rounded-lg p-3.5 overflow-hidden">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <span class="text-xs font-mono-tech text-cyan-300 uppercase font-bold">B. DOSE RATE รวมตาม MAPPING & PRESETS (/นาที)</span>
             <span id="doseDecayBadge" class="text-[11px] font-mono-tech text-cyan-200">Mapping Decay: 1.000000</span>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3 items-end">
-            <div class="md:col-span-5">
+          <div class="space-y-3 mb-3">
+            <!-- แถวที่ 1: วันที่ทำ Mapping -->
+            <div>
               <label class="block text-xs text-slate-300 mb-1">ณ วันที่ทำ Mapping (วัน/เดือน/ปี พ.ศ.)</label>
-              <div class="grid grid-cols-3 gap-1">
-                <select id="doseRefDay" onchange="saveCo60Settings()" class="bg-slate-900 border border-cyan-500/40 rounded px-1 py-1.5 text-xs text-white"></select>
-                <select id="doseRefMonth" onchange="saveCo60Settings()" class="bg-slate-900 border border-cyan-500/40 rounded px-1 py-1.5 text-xs text-white"></select>
-                <select id="doseRefYearBE" onchange="saveCo60Settings()" class="bg-slate-900 border border-cyan-500/40 rounded px-1 py-1.5 text-xs text-white"></select>
+              <div class="grid grid-cols-3 gap-2 max-w-md">
+                <select id="doseRefDay" onchange="saveCo60Settings()" class="w-full min-w-0 bg-slate-900 border border-cyan-500/40 rounded px-2 py-1.5 text-xs text-white"></select>
+                <select id="doseRefMonth" onchange="saveCo60Settings()" class="w-full min-w-0 bg-slate-900 border border-cyan-500/40 rounded px-2 py-1.5 text-xs text-white"></select>
+                <select id="doseRefYearBE" onchange="saveCo60Settings()" class="w-full min-w-0 bg-slate-900 border border-cyan-500/40 rounded px-2 py-1.5 text-xs text-white"></select>
               </div>
             </div>
 
-            <div class="md:col-span-7">
+            <!-- แถวที่ 2: โหลด / บันทึก Preset แยกแถวเต็มความกว้าง + ปุ่มไม่หดตัว -->
+            <div>
               <label class="block text-xs text-slate-300 mb-1">โหลด / บันทึก Preset ชุด Source & Dose Rate รวม</label>
-              <div class="flex gap-1.5">
-                <select id="presetSelect" onchange="applySelectedPreset()" class="flex-1 bg-slate-900 border border-cyan-500/40 rounded px-2 py-1.5 text-xs text-white">
+              <div class="flex flex-wrap items-center gap-2 w-full">
+                <select id="presetSelect" onchange="applySelectedPreset()"
+                  class="flex-1 min-w-[200px] max-w-full bg-slate-900 border border-cyan-500/40 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400">
                   <option value="">-- เลือก Preset ที่บันทึกไว้ --</option>
                 </select>
-                <button type="button" onclick="saveNewPreset()" class="px-2.5 py-1.5 rounded bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-200 border border-cyan-400/50 text-xs font-bold shrink-0">
-                  + บันทึก Preset
-                </button>
-                <button type="button" onclick="deleteSelectedPreset()" class="px-2 py-1.5 rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-500/40 text-xs shrink-0" title="ลบ Preset ที่เลือก">
-                  🗑
-                </button>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button type="button" onclick="saveNewPreset()"
+                    class="px-3 py-1.5 rounded bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-200 border border-cyan-400/50 text-xs font-bold whitespace-nowrap transition">
+                    + บันทึก Preset
+                  </button>
+                  <button type="button" onclick="deleteSelectedPreset()"
+                    class="px-2.5 py-1.5 rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-500/40 text-xs shrink-0 transition"
+                    title="ลบ Preset ที่เลือก">
+                    🗑
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
+          <!-- แถวที่ 3: เลือกชุด Source & กรอกค่า Dose Rate รวม -->
           <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end bg-slate-900/80 border border-slate-800 rounded-lg p-3">
             <div class="sm:col-span-7">
               <label class="block text-[11px] font-mono-tech text-slate-300 mb-1.5">ติ๊กถูกเลือกชุด Source ที่ Mapping:</label>
@@ -454,23 +1270,24 @@
               <label class="block text-[11px] font-mono-tech text-cyan-300 mb-1.5">Dose Rate รวม ณ วัน Mapping (/นาที):</label>
               <div class="relative">
                 <input type="number" step="any" id="combinedRefDoseRateInput" oninput="handleCombinedDoseInput()"
-                  class="w-full bg-slate-950 border border-cyan-400/50 rounded px-3 py-1.5 font-mono-tech text-sm font-bold text-cyan-200 focus:outline-none focus:border-cyan-300" />
-                <span id="combinedDoseUnitLabel" class="absolute right-2.5 top-1.5 text-xs font-mono-tech text-cyan-400">kGy/m</span>
+                  class="w-full bg-slate-950 border border-cyan-400/50 rounded px-3 pr-14 py-1.5 font-mono-tech text-sm font-bold text-cyan-200 focus:outline-none focus:border-cyan-300" />
+                <span id="combinedDoseUnitLabel" class="absolute right-2.5 top-2 text-xs font-mono-tech text-cyan-400">kGy/m</span>
               </div>
             </div>
           </div>
 
-          <div class="mt-2 flex flex-wrap items-center justify-between text-[11px] font-mono-tech text-slate-400">
+          <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono-tech text-slate-400">
             <span id="activeMappingPatternText">ชุดที่เลือก: S1+S2+S3+S4+S5+S6 (6 Sources)</span>
             <span id="presetMatchStatusText" class="text-emerald-400">บันทึกเข้ากับชุด Source นี้แล้ว</span>
           </div>
-          <div id="configFileStatusText" class="mt-1.5 font-mono-tech text-[11px] text-purple-300">
+          <div id="configFileStatusText" class="mt-1 font-mono-tech text-[11px] text-purple-300">
             ค่า Co-60 & Preset บันทึกในเบราว์เซอร์อัตโนมัติ (สามารถ Export/Import ไฟล์ .JSON เพื่อย้ายเครื่องหรือสำรองข้อมูลได้)
           </div>
         </div>
       </div>
 
-      <div class="xl:col-span-5 bg-gradient-to-br from-purple-950/35 via-slate-950/90 to-cyan-950/30 border border-purple-400/40 rounded-lg p-4 flex flex-col justify-between">
+      <!-- RIGHT PANEL: CURRENT STATUS -->
+      <div class="xl:col-span-4 bg-gradient-to-br from-purple-950/35 via-slate-950/90 to-cyan-950/30 border border-purple-400/40 rounded-lg p-4 flex flex-col justify-between min-w-0">
         <div>
           <div class="text-xs font-mono-tech text-cyan-300 uppercase mb-3 flex items-center justify-between">
             <span>ค่าปัจจุบัน REAL-TIME (CURRENT STATUS)</span>
@@ -503,7 +1320,7 @@
   </section>
 
   <!-- MAIN TELEMETRY CONSOLE -->
-  <section class="grid grid-cols-1 xl:grid-cols-12 gap-5 mb-5 no-print">
+  <section id="telemetrySection" class="grid grid-cols-1 xl:grid-cols-12 gap-5 mb-5 no-print">
     <div id="mainStateCard" class="xl:col-span-5 hud-panel rounded-lg p-5 flex flex-col justify-between transition-all duration-300">
       <div>
         <div class="flex items-center justify-between border-b border-cyan-500/20 pb-3 mb-4">
@@ -575,7 +1392,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5 my-auto">
+      <div id="sourceGridWrap" class="grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-6 gap-3.5 my-auto">
         <div id="sourceGrid" class="contents"></div>
       </div>
 
@@ -590,8 +1407,17 @@
       </div>
     </div>
   </section>
+  </div>
 
-  <!-- แถบตัวกรองช่วงเวลา & EXPORT -->
+  <!-- ================= PAGE 03 : REPORTS ================= -->
+  <div id="page-reports" class="page-view">
+    <div class="page-heading no-print">
+      <div class="page-heading-kicker">03 // ANALYTICS</div>
+      <h2 class="page-heading-title">REPORTS &amp; LOGS</h2>
+      <p class="page-heading-desc">สรุปตามปีงบประมาณ/ไตรมาส • KPI • กราฟ • ตาราง Log • พิมพ์รายงาน PDF</p>
+    </div>
+
+    <!-- แถบตัวกรองช่วงเวลา & EXPORT -->
   <section class="hud-panel rounded-lg p-4 mb-5 no-print">
     <div class="flex flex-col xl:flex-row items-start xl:items-end justify-between gap-4">
       <div class="flex flex-wrap items-end gap-3 w-full xl:w-auto">
@@ -643,9 +1469,13 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2.5">
-        <button onclick="exportArduinoFormatLogCSV()" class="px-4 py-2 rounded bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-400/50 text-sm font-bold flex items-center gap-2 transition">
-          <span>⬇ Export Log (.CSV)</span>
-        </button>
+        <details class="save-menu no-print">
+          <summary>⬇ Export / บันทึก Log (.CSV/.JSON) ▾</summary>
+          <div class="save-menu-panel">
+            <button type="button" onclick="saveLogFile('csv')">CSV — Arduino 9 คอลัมน์</button>
+            <button type="button" onclick="saveLogFile('json')">JSON — Log + Config/Presets</button>
+          </div>
+        </details>
         <button onclick="printPdfReport()" class="px-4 py-2 rounded bg-cyan-500/25 hover:bg-cyan-500/40 text-cyan-200 border border-cyan-400/60 text-sm font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(0,240,255,0.2)] transition">
           <span>🖨 สร้างรายงาน PDF (รายไตรมาส)</span>
         </button>
@@ -782,6 +1612,9 @@
       </table>
     </div>
   </section>
+  </div>
+
+  <div id="appToast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
     const STORAGE_KEY = 'gamma_6src_telemetry_logs_v5';
@@ -826,6 +1659,23 @@
     let isSimulationMode = true;
     let autoWriteArduinoEnabled = false;
     let liveStatusPollTimer = null;
+    let timeSyncIntervalTimer = null;
+    let lastKnownArduinoSeq = 0;
+    let modeCommandPendingUntil = 0;
+    let hwSessionStartMs = null;
+    let pollInFlight = false;
+    let pollFailStreak = 0;
+    let pollNextAllowedAt = 0;
+    let nextAutoTimeSyncAt = 0;
+    let breakdownReasonPostTimer = null;
+    let livePollGeneration = 0;
+    let lastLogSyncAt = 0;
+    let lastLogSyncOk = false;
+    let lastLogSyncError = '';
+    let lastImportedStats = null;
+    let lastBoardStatus = null;
+    let lastBoardStatusAt = 0;
+    let timeSyncInFlight = false;
     let currentSources = [0, 0, 0, 0, 0, 0];
     let isBreakdownChecked = false;
     let breakdownReason = '';
@@ -835,12 +1685,21 @@
       status: 'STOP',
       sources: [0, 0, 0, 0, 0, 0],
       startTimeMs: Date.now(),
-      note: 'เริ่มต้นระบบมอนิเตอร์'
+      note: 'เริ่มต้นระบบมอนิเตอร์',
+      acOk: true
     };
 
     let logs = [];
+    let storageWarned = false;
     let doughnutChart = null;
     let barChart = null;
+    let chartsPending = true;
+    let activePage = 'control';
+    let pageBeforePrint = null;
+    let audioCtx = null;
+    let soundEnabled = true;
+    let toastTimer = null;
+    let lastConnectionState = 'sim';
 
     const CRC32_TABLE = (() => {
       const tbl = new Uint32Array(256);
@@ -873,27 +1732,332 @@
       const el = document.getElementById('configFileStatusText');
       if (!el) return;
       el.textContent = text;
-      el.className = `mt-1.5 font-mono-tech text-[11px] ${isError ? 'text-rose-400' : 'text-emerald-300'}`;
+      el.className = `mt-1 font-mono-tech text-[11px] ${isError ? 'text-rose-400' : 'text-emerald-300'}`;
     }
 
+    // Protocol v1: Arduino Mega + ENC28J60 serves plain HTTP on port 80.
+    const ARDUINO_PROTOCOL_NAME = 'GAMMA_IRRADIATOR';
+    const ARDUINO_PROTOCOL_VERSION = 1;
+    // ต้องตรงกับ API_TOKEN ใน firmware (เปลี่ยนได้ที่ช่อง API Token หน้า Log Sync)
+    const DEFAULT_API_TOKEN = 'GAMMA-LAN-2026';
+
     function getArduinoBaseUrl() {
-      const raw = (document.getElementById('arduinoEndpointInput')?.value || 'http://192.168.10.1').trim();
+      let raw = (document.getElementById('arduinoEndpointInput')?.value || 'http://192.168.10.1').trim();
+      if (!raw) return '';
+      if (/^https:\/\//i.test(raw)) raw = raw.replace(/^https:/i, 'http:');
+      else if (!/^http:\/\//i.test(raw)) raw = `http://${raw}`;
       return raw.replace(/\/+$/, '');
     }
 
+    function isHttpsPageToHttpBoard() {
+      try {
+        return window.location.protocol === 'https:' && getArduinoBaseUrl().startsWith('http://');
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function loadApiToken() {
+      let token = DEFAULT_API_TOKEN;
+      try {
+        const saved = localStorage.getItem('gamma_api_token');
+        if (saved !== null) token = saved;
+      } catch (e) {}
+      const el = document.getElementById('apiTokenInput');
+      if (el) el.value = token;
+    }
+
+    function getApiToken() {
+      const el = document.getElementById('apiTokenInput');
+      if (el) return el.value.trim();
+      try {
+        return (localStorage.getItem('gamma_api_token') || '').trim();
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function saveApiToken() {
+      try {
+        localStorage.setItem('gamma_api_token', getApiToken());
+      } catch (e) {}
+    }
+
+    function apiHeaders(extra = {}) {
+      const token = getApiToken();
+      return token ? Object.assign({}, extra, { 'X-API-Token': token }) : extra;
+    }
+
+    function fetchWithTimeout(url, options = {}, timeoutMs = 4500) {
+      try {
+        if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+          return fetch(url, Object.assign({}, options, { signal: AbortSignal.timeout(timeoutMs) }));
+        }
+      } catch (e) {}
+      if (typeof AbortController === 'undefined') return fetch(url, options);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      return fetch(url, Object.assign({}, options, { signal: controller.signal }))
+        .finally(() => clearTimeout(timer));
+    }
+
+    function updateEndpointLabel() {
+      const baseUrl = getArduinoBaseUrl();
+      const url = baseUrl.replace(/^https?:\/\//i, '');
+      const subEl = document.getElementById('connIpSubText');
+      if (subEl) subEl.textContent = `LAN: ${url || '192.168.10.1'}`;
+      const diag = document.getElementById('diagEndpointValue');
+      if (diag) diag.textContent = baseUrl || 'http://192.168.10.1';
+    }
+
+    const UI_MODE_KEY = 'gamma_ui_mode_v1';
+
+    function isPhoneDevice() {
+      try {
+        const ua = navigator.userAgent || '';
+        const byUa = /Android.*Mobile|iPhone|iPod|Windows Phone|BlackBerry|Opera Mini|IEMobile/i.test(ua);
+        const touch = (navigator.maxTouchPoints || 0) > 0;
+        const width = Math.min(screen.width || 99999, window.innerWidth || 99999);
+        return byUa || (touch && width <= 600);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function getSavedUiMode() {
+      try {
+        const saved = localStorage.getItem(UI_MODE_KEY);
+        if (saved === 'phone' || saved === 'desktop') return saved;
+      } catch (e) {}
+      return isPhoneDevice() ? 'phone' : 'desktop';
+    }
+
+    function applyUiMode(mode) {
+      const phone = isPhoneDevice();
+      const root = document.documentElement;
+      root.classList.toggle('is-mobile-device', phone);
+      root.classList.toggle('is-phone', phone && mode === 'phone');
+      if (phone && mode === 'desktop') {
+        const meta = document.getElementById('viewportMeta');
+        if (meta) meta.setAttribute('content', 'width=1200');
+      }
+      const btn = document.getElementById('deviceModeToggle');
+      if (btn) {
+        btn.textContent = phone && mode === 'phone' ? '📱 PHONE MODE' : '🖥 DESKTOP MODE';
+        btn.title = phone && mode === 'phone'
+          ? 'แตะเพื่อสลับเป็นมุมมองเดสก์ท็อป'
+          : 'แตะเพื่อสลับเป็นมุมมองโทรศัพท์';
+      }
+    }
+
+    function toggleDeviceMode() {
+      if (!isPhoneDevice()) return;
+      const phoneMode = document.documentElement.classList.contains('is-phone');
+      const next = phoneMode ? 'desktop' : 'phone';
+      try { localStorage.setItem(UI_MODE_KEY, next); } catch (e) {}
+      const meta = document.getElementById('viewportMeta');
+      if (meta) {
+        meta.setAttribute('content', next === 'desktop' ? 'width=1200' : 'width=device-width, initial-scale=1.0');
+      }
+      // reload เพื่อให้ media query ของเบราว์เซอร์คำนวณ viewport ใหม่จริง
+      window.location.reload();
+    }
+
+    const PAGE_IDS = ['control', 'sync', 'reports'];
+
+    function switchPage(name, opts = {}) {
+      const page = PAGE_IDS.includes(name) ? name : 'control';
+      activePage = page;
+
+      document.querySelectorAll('.page-view').forEach(el => {
+        el.classList.toggle('active', el.id === 'page-' + page);
+      });
+      document.querySelectorAll('.page-tab').forEach(btn => {
+        const on = btn.dataset.page === page;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+
+      if (!opts.silent) {
+        try { history.replaceState(null, '', '#' + page); } catch (e) {}
+        window.scrollTo({ top: 0, behavior: opts.instant ? 'auto' : 'smooth' });
+      }
+
+      if (page === 'reports') {
+        // Chart.js ต้องรอให้ container มีขนาดก่อน จึงค่อยสร้าง/รีไซส์กราฟ
+        window.setTimeout(() => {
+          if (chartsPending) {
+            refreshDashboard();
+          } else {
+            if (doughnutChart) doughnutChart.resize();
+            if (barChart) barChart.resize();
+          }
+        }, 40);
+      }
+    }
+
+    function initPageNavigation() {
+      const hashPage = (location.hash || '').replace('#', '');
+      switchPage(PAGE_IDS.includes(hashPage) ? hashPage : 'control', { silent: true, instant: true });
+
+      document.querySelectorAll('.page-tab').forEach(btn => {
+        btn.addEventListener('click', () => switchPage(btn.dataset.page));
+      });
+      window.addEventListener('hashchange', () => {
+        const p = (location.hash || '').replace('#', '');
+        if (PAGE_IDS.includes(p) && p !== activePage) switchPage(p);
+      });
+      window.addEventListener('beforeprint', () => {
+        if (activePage !== 'reports') {
+          pageBeforePrint = activePage;
+          switchPage('reports', { silent: true, instant: true });
+        }
+      });
+      window.addEventListener('afterprint', () => {
+        if (pageBeforePrint) {
+          switchPage(pageBeforePrint, { silent: true, instant: true });
+          pageBeforePrint = null;
+        }
+      });
+    }
+
+    function formatAgeShort(seconds) {
+      const s = Math.max(0, Math.round(Number(seconds) || 0));
+      if (s < 60) return `${s} วิ`;
+      if (s < 3600) return `${Math.floor(s / 60)} นาที`;
+      if (s < 86400) return `${(s / 3600).toFixed(1)} ชม.`;
+      return `${(s / 86400).toFixed(1)} วัน`;
+    }
+
+    // ตรวจความน่าเชื่อถือของ log ที่ดึงมา: ครบ seq, ซิงก์ล่าสุดเมื่อไร,
+    // breakdown ควรมี checkpoint ทุก 15 นาที, SD เขียนพลาด, นาฬิกาบอร์ดคลาด
+    function computeLogFreshness(ctx) {
+      const nowMs = Number(ctx.nowMs) || Date.now();
+      if (ctx.isSimulationMode) {
+        return { level: 'sim', text: 'LOG: SIMULATION (หน่วยความจำเบราว์เซอร์)' };
+      }
+      if (!ctx.syncOk) {
+        return { level: 'bad', text: `LOG: CACHE / ไม่สด • ${ctx.syncError || 'ยังไม่ซิงก์จาก SD'}` };
+      }
+      const stats = ctx.stats || { count: 0, maxSeq: 0, newestEndMs: 0 };
+      const board = ctx.board || null;
+      let level = 'ok';
+      const notes = [];
+
+      // อายุของ "ข้อมูลสถานะ" ไม่ใช่อายุของไฟล์ log — log จะไม่ใหม่ได้ตามปกติเมื่อไม่มี event
+      const boardAgeSec = ctx.boardAt ? Math.max(0, Math.round((nowMs - ctx.boardAt) / 1000)) : null;
+      if (boardAgeSec !== null && boardAgeSec > 10) {
+        level = 'warn';
+        notes.push(`ข้อมูลสถานะเก่า ${formatAgeShort(boardAgeSec)} (การเชื่อมต่อขาด?)`);
+      }
+
+      if (board) {
+        const lastLogSeq = Number(board.last_log_seq);
+        const nextSeq = Number(board.next_seq);
+        const expectedSeq = Number.isFinite(lastLogSeq) && lastLogSeq > 0
+          ? lastLogSeq
+          : (Number.isFinite(nextSeq) && nextSeq > 1 ? nextSeq - 1 : 0);
+        if (expectedSeq > 0 && Number(stats.maxSeq) < expectedSeq) {
+          level = 'warn';
+          notes.push(`SD มี seq ถึง ${Number(stats.maxSeq) || 0}/${expectedSeq} (ดึงมาไม่ครบ)`);
+        }
+
+        const mode = String(board.mode || '');
+        const lastEndSec = Number(board.last_log_end_epoch);
+        const boardSkew = Number(board.clock_skew_sec) || 0;
+        if (mode === 'BREAKDOWN' && Number.isFinite(lastEndSec) && lastEndSec > 0) {
+          // แปลง "ตอนนี้" เป็นเวลาบอร์ดก่อน 비교 กันเตือนผิดเมื่อนาฬิกา 2 ฝั่งไม่ตรงกัน
+          const gapSec = (nowMs / 1000 + boardSkew) - lastEndSec;
+          // Firmware เขียน checkpoint ทุก 15 นาที → เกิน ~16.5 นาทีถือว่าน่าสงสัย
+          if (gapSec > 16.5 * 60) {
+            level = 'warn';
+            notes.push(`breakdown ไม่มี log ใหม่ ${formatAgeShort(gapSec)}`);
+          }
+        }
+
+        if (Number(board.sd_write_errors) > 0) {
+          level = 'warn';
+          notes.push(`SD เขียนพลาด ${Number(board.sd_write_errors)} ครั้ง`);
+        }
+
+        const skew = Number(board.clock_skew_sec);
+        if (Number.isFinite(skew) && Math.abs(skew) > 120) {
+          level = 'warn';
+          notes.push(`นาฬิกาบอร์ดคลาด ${skew > 0 ? '+' : ''}${Math.round(skew)} วิ`);
+        }
+      }
+
+      const syncTime = ctx.syncAt ? getThaiDateParts(ctx.syncAt).timeStr : '-';
+      const newestText = Number(stats.newestEndMs) > 0
+        ? getThaiDateParts(Number(stats.newestEndMs)).fullStr
+        : '-';
+      let text = `LOG: SYNCED ${syncTime} • ${Number(stats.count) || 0} rows • ล่าสุด ${newestText}`;
+      if (notes.length > 0) text += ' • ⚠ ' + notes.join(' • ');
+      return { level, text };
+    }
+
+    function updateLogFreshnessBadge() {
+      const el = document.getElementById('logFreshnessBadge');
+      if (!el) return;
+      const result = computeLogFreshness({
+        isSimulationMode,
+        syncOk: lastLogSyncOk,
+        syncError: lastLogSyncError,
+        syncAt: lastLogSyncAt,
+        stats: lastImportedStats,
+        board: lastBoardStatus,
+        boardAt: lastBoardStatusAt,
+        nowMs: Date.now()
+      });
+      el.textContent = result.text;
+      if (result.level === 'ok') {
+        el.className = 'text-xs font-mono-tech px-2.5 py-0.5 rounded bg-emerald-950 border border-emerald-400/60 text-emerald-300';
+      } else if (result.level === 'warn') {
+        el.className = 'text-xs font-mono-tech px-2.5 py-0.5 rounded bg-amber-950 border border-amber-500/60 text-amber-300';
+      } else if (result.level === 'bad') {
+        el.className = 'text-xs font-mono-tech px-2.5 py-0.5 rounded bg-rose-950 border border-rose-500/60 text-rose-300';
+      } else {
+        el.className = 'text-xs font-mono-tech px-2.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300';
+      }
+
+      const diag = document.getElementById('diagFreshnessValue');
+      if (diag) {
+        diag.textContent = result.text.replace(/^LOG:\s*/, '');
+        diag.className = 'diag-value ' + (
+          result.level === 'ok' ? 'text-emerald-300'
+            : result.level === 'warn' ? 'text-amber-300'
+              : result.level === 'bad' ? 'text-rose-300' : 'text-slate-300'
+        );
+      }
+      const lastSync = document.getElementById('diagLastSyncValue');
+      if (lastSync) lastSync.textContent = lastLogSyncAt ? getThaiDateParts(lastLogSyncAt).timeStr : '-';
+    }
+
     async function syncThaiTimeToArduino() {
-      if (isSimulationMode) return;
+      if (isSimulationMode || timeSyncInFlight) return;
       const baseUrl = getArduinoBaseUrl();
       if (!baseUrl) return;
-      const epochSec = Math.floor(Date.now() / 1000);
+      timeSyncInFlight = true;
+      // Contract: POST /time receives UTC Unix epoch seconds as plain text.
+      const utcEpochSec = Math.floor(Date.now() / 1000);
       try {
-        await fetch(`${baseUrl}/time`, {
+        const res = await fetchWithTimeout(`${baseUrl}/time`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ epoch: epochSec, tz_offset_hours: 7 })
+          headers: apiHeaders({ 'Content-Type': 'text/plain;charset=utf-8' }),
+          cache: 'no-store',
+          body: String(utcEpochSec)
         });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const reply = (await res.text()).trim();
+        if (!reply.startsWith('TIME SYNCED')) throw new Error(reply || 'TIME SYNC FAILED');
       } catch (err) {
-        // เงียบไว้หากอยู่นอกเครือข่าย LAN ของบอร์ด
+        const hwBadge = document.getElementById('hwStatusBadge');
+        if (hwBadge && !isSimulationMode) {
+          hwBadge.textContent = `HW: TIME SYNC ERROR`;
+          hwBadge.className = 'text-xs font-mono-tech text-amber-300 px-2 py-0.5 border border-amber-500/40 bg-amber-950/60 rounded';
+        }
+      } finally {
+        timeSyncInFlight = false;
       }
     }
 
@@ -901,14 +2065,30 @@
       if (isSimulationMode) return;
       const baseUrl = getArduinoBaseUrl();
       if (!baseUrl) return;
+      const cleanRsn = sanitizeArduinoReason(reason);
+      const payload = mode === 'BREAKDOWN' ? `BREAKDOWN,${cleanRsn}` : 'STOP';
       try {
-        await fetch(`${baseUrl}/mode`, {
+        const res = await fetchWithTimeout(`${baseUrl}/mode`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode, reason })
+          headers: apiHeaders({ 'Content-Type': 'text/plain;charset=utf-8' }),
+          cache: 'no-store',
+          body: payload
         });
+        const reply = (await res.text()).trim();
+        if (!res.ok || !reply.startsWith('MODE=')) {
+          throw new Error(reply || `HTTP ${res.status}`);
+        }
+        modeCommandPendingUntil = Date.now() + 2500;
+        const expectedReply = mode === 'BREAKDOWN' ? 'MODE=BREAKDOWN' : 'MODE=STOP';
+        if (reply !== expectedReply) {
+          const fb = document.getElementById('autoArduinoLogFeedback');
+          fb.textContent = `[MODE NOTE] ส่ง ${mode} แล้ว บอร์ดตอบ ${reply} (${mode === 'BREAKDOWN' ? 'มี Source Up / interlock' : 'AC ขาดหรือยังอยู่ใน breakdown'})`;
+          fb.className = 'mt-2 font-mono-tech text-[11px] text-amber-300';
+        }
       } catch (err) {
-        // เงียบไว้หากอยู่นอกเครือข่าย LAN ของบอร์ด
+        const fb = document.getElementById('autoArduinoLogFeedback');
+        fb.textContent = `[MODE ERROR] ส่งคำสั่ง ${mode} ไป Arduino ไม่สำเร็จ: ${err.message || err}`;
+        fb.className = 'mt-2 font-mono-tech text-[11px] text-rose-400';
       }
     }
 
@@ -917,67 +2097,270 @@
       const baseUrl = getArduinoBaseUrl();
       if (!baseUrl) return;
 
+      // Board ใช้ ENC28J60 ทีละ connection: กัน fetch ซ้อนกัน และถอยหลังเมื่อล้มเหลว
+      if (pollInFlight || Date.now() < pollNextAllowedAt) return;
+      pollInFlight = true;
+
+      const hwBadge = document.getElementById('hwStatusBadge');
+
       try {
-        const res = await fetch(`${baseUrl}/status`, { method: 'GET', cache: 'no-store' });
-        if (!res.ok) return;
+        const res = await fetchWithTimeout(`${baseUrl}/status`, { method: 'GET', cache: 'no-store', headers: apiHeaders() });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
         const data = await res.json();
+        if (data.protocol !== ARDUINO_PROTOCOL_NAME || Number(data.protocol_version) !== ARDUINO_PROTOCOL_VERSION) {
+          const err = new Error('PROTOCOL_MISMATCH');
+          err.code = 'PROTOCOL_MISMATCH';
+          throw err;
+        }
 
-        const parsedSources = Array.isArray(data.sources) && data.sources.length === 6
-          ? data.sources.map(v => (Number(v) === 1 ? 1 : 0))
-          : [0, 0, 0, 0, 0, 0];
+        const parsedSources = (Array.isArray(data.sources) ? data.sources : []).map(v => {
+          const n = Number(v);
+          if (n !== 0 && n !== 1) throw new Error('INVALID_SOURCE_VALUE');
+          return n;
+        });
+        const remoteMode = String(data.mode || '').toUpperCase();
+        if (parsedSources.length !== 6 || typeof data.ac_ok !== 'boolean' ||
+            typeof data.manual_breakdown !== 'boolean' || typeof data.has_rtc !== 'boolean' ||
+            typeof data.has_sd !== 'boolean' || !Number.isFinite(Number(data.next_seq)) ||
+            (remoteMode && !['RUNNING', 'BREAKDOWN', 'STOP'].includes(remoteMode))) {
+          throw new Error('INVALID_STATUS_SCHEMA');
+        }
 
-        const acOk = typeof data.ac_ok === 'boolean' ? data.ac_ok : true;
+        pollFailStreak = 0;
+        pollNextAllowedAt = 0;
+
+        if (lastConnectionState !== 'online') {
+          lastConnectionState = 'online';
+          const timeNote = data.time_valid === false ? ' • ⚠ เวลายังไม่ซิงก์' : '';
+          showToast(
+            `✅ เชื่อมต่อ Arduino สำเร็จ • FW ${data.fw || '-'} • RTC:${data.has_rtc ? 'OK' : 'NO'} • SD:${data.has_sd ? 'OK' : 'NO'}${timeNote}`,
+            'success',
+            5200
+          );
+          playSuccessSound();
+          vibrate(40);
+        }
+
+        const acOk = data.ac_ok;
         const anySourceUp = parsedSources.some(v => v === 1);
+        const remoteManualBreakdown = Boolean(data.manual_breakdown);
 
-        if (!acOk && !anySourceUp) {
-          isBreakdownChecked = true;
-          document.getElementById('breakdownCheckbox').checked = true;
-          if (!breakdownReason.trim()) {
-            breakdownReason = 'AC_LOST_BREAKDOWN';
-            document.getElementById('breakdownReasonInput').value = breakdownReason;
+        // ตรวจ protocol drift: mode ที่บอร์ดรายงานต้องตรงกับ sources/ac_ok
+        const expectedMode = anySourceUp ? 'RUNNING' : ((!acOk || remoteManualBreakdown) ? 'BREAKDOWN' : 'STOP');
+        const modeMismatch = remoteMode && remoteMode !== expectedMode;
+
+        // ตรวจความสด: เทียบนาฬิกาบอร์ดกับนาฬิกาเครื่องนี้
+        const boardEpochMs = Number(data.epoch) * 1000;
+        let clockSkewSec = null;
+        if (Number.isFinite(boardEpochMs) && boardEpochMs > 0) {
+          clockSkewSec = Math.round((boardEpochMs - Date.now()) / 1000);
+        }
+        lastBoardStatus = { ...data, clock_skew_sec: clockSkewSec };
+        lastBoardStatusAt = Date.now();
+        updateLogFreshnessBadge();
+
+        if (clockSkewSec !== null && Math.abs(clockSkewSec) > 300 && Date.now() > nextAutoTimeSyncAt) {
+          // คลาดเกิน 5 นาที: ซิงก์เวลาอัตโนมัติ (จำกัด 1 ครั้ง/นาที)
+          nextAutoTimeSyncAt = Date.now() + 60000;
+          syncThaiTimeToArduino();
+        }
+
+        hwBadge.textContent = `HW: ONLINE | FW ${data.fw || '-'} | API v${data.protocol_version} | RTC:${data.has_rtc ? 'OK' : 'NO'} | SD:${data.has_sd ? 'OK' : 'NO'}`;
+        hwBadge.className = 'text-xs font-mono-tech text-cyan-300 px-2 py-0.5 border border-cyan-500/40 bg-cyan-950/50 rounded';
+        if (data.time_valid === false) {
+          hwBadge.textContent = `HW: ONLINE | TIME NOT SYNCED (${data.time_source || 'UNSYNCED'})`;
+          hwBadge.className = 'text-xs font-mono-tech text-amber-300 px-2 py-0.5 border border-amber-500/50 bg-amber-950/60 rounded';
+          if (Date.now() > nextAutoTimeSyncAt) {
+            nextAutoTimeSyncAt = Date.now() + 60000;
+            syncThaiTimeToArduino();
           }
-        } else if (anySourceUp) {
-          isBreakdownChecked = false;
-          document.getElementById('breakdownCheckbox').checked = false;
-        } else if (acOk && !anySourceUp && activeSession.status === 'BREAKDOWN' && !document.getElementById('breakdownCheckbox').checked) {
-          isBreakdownChecked = false;
+        } else if (modeMismatch) {
+          hwBadge.textContent = `HW: STATE MISMATCH (board=${remoteMode}, expected=${expectedMode})`;
+          hwBadge.className = 'text-xs font-mono-tech text-amber-300 px-2 py-0.5 border border-amber-500/50 bg-amber-950/60 rounded';
+        }
+
+        // session_sec อิง millis ของบอร์ด: ใช้เป็นเวลาเริ่มรอบที่แม่นยำ (ไม่รีเซ็ตเมื่อรีเฟรชหน้า)
+        const sessSec = Number(data.session_sec);
+        if (Number.isFinite(sessSec) && sessSec >= 0 && sessSec < 315360000) {
+          hwSessionStartMs = Date.now() - sessSec * 1000;
+          const startParts = getThaiDateParts(hwSessionStartMs);
+          document.getElementById('sessionStartDisplay').textContent = `เริ่มรอบ: ${startParts.timeStr} น.`;
+        }
+
+        // หลังสั่ง /mode ให้รอผลจากบอร์ด 2.5s ก่อนให้ poll กลับมาเขียนทับ checkbox
+        const pendingModeCommand = Date.now() < modeCommandPendingUntil;
+        if (!pendingModeCommand) {
+          if (!acOk && !anySourceUp) {
+            isBreakdownChecked = true;
+            document.getElementById('breakdownCheckbox').checked = true;
+            if (!breakdownReason.trim()) {
+              breakdownReason = 'AC_LOST_BREAKDOWN';
+              document.getElementById('breakdownReasonInput').value = breakdownReason;
+            }
+          } else if (anySourceUp) {
+            isBreakdownChecked = false;
+            document.getElementById('breakdownCheckbox').checked = false;
+          } else {
+            isBreakdownChecked = remoteManualBreakdown;
+            document.getElementById('breakdownCheckbox').checked = remoteManualBreakdown;
+            if (remoteManualBreakdown && data.breakdown_reason && document.activeElement !== document.getElementById('breakdownReasonInput')) {
+              breakdownReason = data.breakdown_reason;
+              document.getElementById('breakdownReasonInput').value = breakdownReason;
+            }
+          }
         }
 
         evaluateSystemState(parsedSources, acOk);
+
+        // อัปเดต UI ก่อน แล้วค่อยดึง /logs เมื่อ seq เปลี่ยน
+        // (รวมกรณี SD ถูกล้าง/เปลี่ยนการ์ดจน seq ลดลง ซึ่งเดิมตรวจไม่เจอ)
+        const remoteSeq = Number(data.next_seq || 0);
+        if (remoteSeq !== lastKnownArduinoSeq) {
+          lastKnownArduinoSeq = remoteSeq;
+          await fetchLogsFromArduinoEndpoint(true);
+        }
+        updateLogFreshnessBadge();
       } catch (err) {
-        // เงียบไว้หากอยู่นอกเครือข่าย LAN ของบอร์ด
+        pollFailStreak++;
+        pollNextAllowedAt = Date.now() + Math.min(8000, 1000 * Math.pow(2, Math.min(pollFailStreak - 1, 3)));
+        const msg = err && err.message;
+        if (err && err.code === 'PROTOCOL_MISMATCH') {
+          hwBadge.textContent = 'HW: PROTOCOL MISMATCH (ต้องอัปเดต Firmware v1)';
+        } else if (msg === 'INVALID_STATUS_SCHEMA') {
+          hwBadge.textContent = 'HW: INVALID STATUS SCHEMA';
+        } else if (msg === 'INVALID_SOURCE_VALUE') {
+          hwBadge.textContent = 'HW: INVALID SOURCE VALUE (ต้องเป็น 0/1)';
+        } else if (msg === 'HTTP 401') {
+          hwBadge.textContent = 'HW: UNAUTHORIZED — ตรวจ API Token ให้ตรงกับ Firmware';
+        } else if (msg && msg.startsWith('HTTP ')) {
+          hwBadge.textContent = `HW: ${msg}`;
+        } else if (isHttpsPageToHttpBoard()) {
+          hwBadge.textContent = 'HW: BLOCKED (HTTPS page → HTTP board)';
+        } else {
+          hwBadge.textContent = 'HW: DISCONNECTED';
+        }
+        hwBadge.className = 'text-xs font-mono-tech text-rose-300 px-2 py-0.5 border border-rose-500/40 bg-rose-950/60 rounded';
+
+        if (lastConnectionState !== 'offline') {
+          lastConnectionState = 'offline';
+          let reason = 'เชื่อมต่อ Arduino ไม่สำเร็จ';
+          if (msg === 'HTTP 401') reason = 'เชื่อมต่อไม่สำเร็จ — API Token ไม่ตรง';
+          else if (err && err.code === 'PROTOCOL_MISMATCH') reason = 'เชื่อมต่อไม่สำเร็จ — Firmware protocol ไม่ตรง';
+          else if (msg === 'INVALID_STATUS_SCHEMA') reason = 'เชื่อมต่อไม่สำเร็จ — ข้อมูล /status ผิดรูปแบบ';
+          else if (isHttpsPageToHttpBoard()) reason = 'เชื่อมต่อไม่สำเร็จ — หน้าเว็บ HTTPS เรียกบอร์ด HTTP ไม่ได้';
+          else if (msg && msg.startsWith('HTTP ')) reason += ` (${msg})`;
+          else reason += ' — ตรวจสาย LAN/IP และโหมด DHCP';
+          showToast('❌ ' + reason, 'error', 6000);
+          playErrorSound();
+          vibrate([80, 60, 80]);
+        }
+      } finally {
+        pollInFlight = false;
       }
     }
 
-    function startLiveArduinoPolling() {
+    async function startLiveArduinoPolling() {
       stopLiveArduinoPolling();
-      syncThaiTimeToArduino();
-      pollLiveStatusFromArduino();
+      const generation = ++livePollGeneration;
+      lastKnownArduinoSeq = 0;
+      pollFailStreak = 0;
+      pollNextAllowedAt = 0;
+      modeCommandPendingUntil = 0;
+      hwSessionStartMs = null;
+      lastLogSyncAt = 0;
+      lastLogSyncOk = false;
+      lastLogSyncError = '';
+      lastImportedStats = null;
+      lastBoardStatus = null;
+      lastBoardStatusAt = 0;
+      nextAutoTimeSyncAt = 0;
+      updateLogFreshnessBadge();
+      // ENC28J60 รับ connection ทีละครั้ง: ทำเวลา -> ดึง log -> poll ตามลำดับ ห้ามยิงพร้อมกัน
+      await syncThaiTimeToArduino();
+      if (generation !== livePollGeneration || isSimulationMode) return;
+      await fetchLogsFromArduinoEndpoint(true);
+      if (generation !== livePollGeneration || isSimulationMode) return;
+      await pollLiveStatusFromArduino();
+      if (generation !== livePollGeneration || isSimulationMode) return;
       liveStatusPollTimer = setInterval(pollLiveStatusFromArduino, 1000);
+      timeSyncIntervalTimer = setInterval(syncThaiTimeToArduino, 600000);
     }
 
     function stopLiveArduinoPolling() {
+      livePollGeneration++;
       if (liveStatusPollTimer) {
         clearInterval(liveStatusPollTimer);
         liveStatusPollTimer = null;
       }
+      if (timeSyncIntervalTimer) {
+        clearInterval(timeSyncIntervalTimer);
+        timeSyncIntervalTimer = null;
+      }
+      if (breakdownReasonPostTimer) {
+        clearTimeout(breakdownReasonPostTimer);
+        breakdownReasonPostTimer = null;
+      }
+      pollInFlight = false;
+      pollNextAllowedAt = 0;
     }
 
-    async function fetchLogsFromArduinoEndpoint() {
+    async function fetchLogsFromArduinoEndpoint(silent = false) {
       const baseUrl = getArduinoBaseUrl();
-      if (!baseUrl) return;
-      setLogEditorMsg(`[FETCHING] กำลังดึง /LOGS.CSV จาก ${baseUrl} ...`);
+      if (!baseUrl) {
+        lastLogSyncOk = false;
+        lastLogSyncError = 'ไม่มี Endpoint';
+        updateLogFreshnessBadge();
+        return false;
+      }
+      if (!silent) setLogEditorMsg(`[FETCHING] กำลังดึง /LOGS.CSV จาก ${baseUrl} ...`);
       try {
-        const res = await fetch(`${baseUrl}/logs`, { method: 'GET', cache: 'no-store' });
+        const res = await fetchWithTimeout(`${baseUrl}/logs`, { method: 'GET', cache: 'no-store', headers: apiHeaders() });
         if (!res.ok) {
-          setLogEditorMsg(`[HTTP ${res.status}] ดึง Log จาก Arduino ไม่สำเร็จ`, true);
-          return;
+          lastLogSyncOk = false;
+          lastLogSyncError = res.status === 401 ? 'UNAUTHORIZED' : `HTTP ${res.status}`;
+          updateLogFreshnessBadge();
+          if (!silent) {
+            setLogEditorMsg(res.status === 401
+              ? '[UNAUTHORIZED] API Token ไม่ตรงกับ Firmware — ตรวจช่อง API Token ในหน้า Network Profile'
+              : `[HTTP ${res.status}] ดึง Log จาก Arduino ไม่สำเร็จ — ข้อมูลที่แสดงอาจเป็นแคชเก่า`, true);
+          }
+          return false;
         }
-        const csvText = await res.text();
-        document.getElementById('arduinoLogEditorTextarea').value = csvText;
-        importLogFromCsvString(csvText, 'Arduino-SD');
+        const csvText = (await res.text()).replace(/^\uFEFF/, '');
+        const csvHeader = csvText.split(/\r?\n/, 1)[0].trim().toLowerCase();
+        if (csvHeader !== 'seq,mode,sources,ac_status,start_time,end_time,duration_min,reason,crc32') {
+          lastLogSyncOk = false;
+          lastLogSyncError = 'CSV_HEADER_MISMATCH';
+          updateLogFreshnessBadge();
+          if (!silent) setLogEditorMsg('[PROTOCOL ERROR] Arduino ส่ง CSV Header ไม่ตรงกับ schema v1', true);
+          return false;
+        }
+        const editorEl = document.getElementById('arduinoLogEditorTextarea');
+        // ห้ามเขียนทับข้อความที่ผู้ใช้กำลังแก้ไขอยู่
+        if (editorEl && document.activeElement !== editorEl) editorEl.value = csvText;
+        const ok = importLogFromCsvString(csvText, 'Arduino-SD', silent);
+        if (ok) {
+          lastLogSyncAt = Date.now();
+          lastLogSyncOk = true;
+          lastLogSyncError = '';
+        } else {
+          lastLogSyncOk = false;
+          lastLogSyncError = 'IMPORT_REJECTED';
+        }
+        updateLogFreshnessBadge();
+        return ok;
       } catch (err) {
-        setLogEditorMsg(`[OFFLINE] เชื่อมต่อ ${baseUrl} ไม่ได้ — ตรวจสอบสาย LAN/IP หรือใช้ Import ไฟล์ .CSV`, true);
+        lastLogSyncOk = false;
+        lastLogSyncError = isHttpsPageToHttpBoard() ? 'HTTPS_BLOCK' : 'OFFLINE';
+        updateLogFreshnessBadge();
+        if (!silent) {
+          setLogEditorMsg(isHttpsPageToHttpBoard()
+            ? '[HTTPS BLOCK] หน้าเว็บเป็น HTTPS แต่บอร์ดเป็น HTTP — เปิดไฟล์ในเครื่องหรือใช้ local HTTP server'
+            : `[OFFLINE] เชื่อมต่อ ${baseUrl} ไม่ได้ — ตรวจสอบสาย LAN/IP หรือใช้ Import ไฟล์ .CSV`, true);
+        }
+        return false;
       }
     }
 
@@ -1020,9 +2403,7 @@
       const rawCfg = data.co60Config || data;
       const rawPresets = Array.isArray(data.presets) ? data.presets : [];
 
-      if (rawCfg.initialCurie !== undefined) {
-        co60Config.initialCurie = parseFloat(rawCfg.initialCurie) || 0;
-      }
+      if (rawCfg.initialCurie !== undefined) co60Config.initialCurie = parseFloat(rawCfg.initialCurie) || 0;
       if (rawCfg.co60RefDay !== undefined) co60Config.co60RefDay = parseInt(rawCfg.co60RefDay, 10) || 1;
       if (rawCfg.co60RefMonth !== undefined) co60Config.co60RefMonth = parseInt(rawCfg.co60RefMonth, 10) || 0;
       if (rawCfg.co60RefYearBE !== undefined) co60Config.co60RefYearBE = parseInt(rawCfg.co60RefYearBE, 10) || 2568;
@@ -1031,9 +2412,7 @@
       if (rawCfg.doseRefMonth !== undefined) co60Config.doseRefMonth = parseInt(rawCfg.doseRefMonth, 10) || 0;
       if (rawCfg.doseRefYearBE !== undefined) co60Config.doseRefYearBE = parseInt(rawCfg.doseRefYearBE, 10) || 2569;
 
-      if (rawCfg.unit === 'Gy' || rawCfg.unit === 'kGy') {
-        co60Config.unit = rawCfg.unit;
-      }
+      if (rawCfg.unit === 'Gy' || rawCfg.unit === 'kGy') co60Config.unit = rawCfg.unit;
       if (Array.isArray(rawCfg.selectedSources) && rawCfg.selectedSources.length === 6) {
         co60Config.selectedSources = rawCfg.selectedSources.map(v => (Number(v) === 1 ? 1 : 0));
       }
@@ -1100,7 +2479,7 @@
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: false
+        hourCycle: 'h23'
       });
 
       const partsMap = {};
@@ -1112,7 +2491,8 @@
       const yearBE = yearAD + 543;
       const monthIndex = parseInt(partsMap.month, 10) - 1;
       const day = parseInt(partsMap.day, 10);
-      const hours = partsMap.hour;
+      // บาง engine คืน hour = "24" ที่เที่ยงคืน แม้ใช้ h23
+      const hours = partsMap.hour === '24' ? '00' : partsMap.hour;
       const minutes = partsMap.minute;
       const seconds = partsMap.second;
 
@@ -1133,8 +2513,8 @@
       };
     }
 
-    function toggleAutoWriteToArduino() {
-      autoWriteArduinoEnabled = !autoWriteArduinoEnabled;
+    function setAutoWriteState(enabled, customNote = '') {
+      autoWriteArduinoEnabled = enabled;
       const badge = document.getElementById('autoArduinoStatusBadge');
       const btn = document.getElementById('toggleAutoArduinoBtn');
       const fb = document.getElementById('autoArduinoLogFeedback');
@@ -1143,23 +2523,136 @@
         badge.textContent = 'AUTO WRITE: ON (ACTIVE)';
         badge.className = 'text-xs font-mono-tech px-2.5 py-0.5 rounded bg-emerald-950 border border-emerald-400/60 text-emerald-300';
         btn.textContent = '⏹ ปิดเขียน Log อัตโนมัติ';
-        fb.textContent = 'เปิดโหมดเขียน Log ลง Arduino อัตโนมัติแล้ว — เมื่อจบรอบการทำงานระบบจะส่งข้อมูลเวลาจริงไปทันที';
+        fb.textContent = customNote || 'เปิดโหมดเขียน Log ลง Arduino อัตโนมัติแล้ว (ใช้เฉพาะโหมดจำลองเพื่อป้องกันการเขียนซ้ำกับฮาร์ดแวร์)';
         fb.className = 'mt-2 font-mono-tech text-[11px] text-emerald-300';
       } else {
-        badge.textContent = 'AUTO WRITE: OFF (MANUAL / SIM)';
+        badge.textContent = isSimulationMode ? 'AUTO WRITE: OFF (MANUAL / SIM)' : 'AUTO WRITE: LOCKED (HW LOGS ITSELF)';
         badge.className = 'text-xs font-mono-tech px-2.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-amber-300';
         btn.textContent = '⚡ เปิดเขียน Log อัตโนมัติ';
-        fb.textContent = 'ปิดโหมดเขียน Log ลง Arduino อัตโนมัติแล้ว';
+        fb.textContent = customNote || 'ปิดโหมดเขียน Log อัตโนมัติแล้ว';
         fb.className = 'mt-2 font-mono-tech text-[11px] text-slate-400';
       }
     }
 
+    function toggleAutoWriteToArduino() {
+      if (!isSimulationMode) {
+        alert('ในโหมดเชื่อมต่อ Arduino จริง บอร์ด Arduino จะบันทึกลง SD Card เองโดยอัตโนมัติอยู่แล้ว ไม่ต้องเปิด Auto Write จากหน้าเว็บ');
+        return;
+      }
+      setAutoWriteState(!autoWriteArduinoEnabled);
+    }
+
+    function ensureAudioContext() {
+      try {
+        if (!audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return null;
+          audioCtx = new AC();
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        return audioCtx;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function playSequence(freqs, duration = 0.12, gap = 0.06, volume = 0.04, type = 'sine') {
+      if (!soundEnabled) return;
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+      const start = ctx.currentTime;
+      freqs.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const t = start + i * (duration + gap);
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(volume, t + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + duration + 0.02);
+      });
+    }
+
+    function playConnectSound() {
+      playSequence([520, 660], 0.09, 0.04, 0.025, 'sine');
+    }
+
+    function playSuccessSound() {
+      playSequence([660, 880, 1180], 0.12, 0.07, 0.04, 'sine');
+    }
+
+    function playErrorSound() {
+      playSequence([220, 165], 0.18, 0.06, 0.05, 'triangle');
+    }
+
+    function vibrate(pattern) {
+      try {
+        if (navigator.vibrate) navigator.vibrate(pattern);
+      } catch (e) {}
+    }
+
+    function loadSoundSetting() {
+      try {
+        const saved = localStorage.getItem('gamma_sound_enabled');
+        if (saved !== null) soundEnabled = saved !== '0';
+      } catch (e) {}
+      updateSoundToggle();
+    }
+
+    function updateSoundToggle() {
+      const btn = document.getElementById('soundToggleBtn');
+      if (!btn) return;
+      btn.textContent = soundEnabled ? '🔔' : '🔕';
+      btn.title = soundEnabled ? 'ปิดเสียงแจ้งเตือน' : 'เปิดเสียงแจ้งเตือน';
+      btn.setAttribute('aria-label', btn.title);
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      try { localStorage.setItem('gamma_sound_enabled', soundEnabled ? '1' : '0'); } catch (e) {}
+      updateSoundToggle();
+      if (soundEnabled) {
+        ensureAudioContext();
+        playSequence([880], 0.08, 0, 0.025, 'sine');
+      }
+      showToast(soundEnabled ? '🔔 เปิดเสียงแจ้งเตือนแล้ว' : '🔕 ปิดเสียงแจ้งเตือนแล้ว', 'info', 1500);
+    }
+
+    function showToast(message, type = 'info', duration = 4000) {
+      const el = document.getElementById('appToast');
+      if (!el) return;
+      el.textContent = message;
+      el.className = `toast toast-${type} show`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        el.classList.remove('show');
+      }, duration);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
+
     function sanitizeArduinoReason(rawReason) {
-      return String(rawReason || 'AUTO_LOG')
-        .replace(/,/g, ' ')
-        .replace(/[\r\n]+/g, ' ')
-        .trim()
-        .slice(0, 28) || 'AUTO_LOG';
+      // ต้องตรงกับ sanitizeReason() ของ Firmware v1.1 (ตัด control chars, comma, pipe, quote, braces, angle brackets, backslash)
+      const normalized = String(rawReason || 'AUTO_LOG')
+        .replace(/[\u0000-\u001F\u007F,|"{}<>\\]+/g, ' ')
+        .trim();
+      // Firmware stores at most 28 UTF-8 bytes; stop on a code-point boundary.
+      let output = '';
+      let byteLength = 0;
+      for (const char of normalized) {
+        const charBytes = new TextEncoder().encode(char).length;
+        if (byteLength + charBytes > 28) break;
+        output += char;
+        byteLength += charBytes;
+      }
+      return output.trim() || 'AUTO_LOG';
     }
 
     function buildArduinoCsvLineFromLogItem(item, includeSeq = false, seqNumber = 1) {
@@ -1169,15 +2662,18 @@
       const startIso = getThaiDateParts(item.startTimeMs).isoStr;
       const endIso = getThaiDateParts(item.endTimeMs).isoStr;
       const durStr = Number(item.durationMinutes || 0).toFixed(2);
-      const reasonStr = sanitizeArduinoReason(item.note);
+      // ใช้ reason ดิบที่เก็บแยกไว้ (ถ้ามี) — ห้ามใช้ note ซึ่งมี prefix [source #seq] ติดไปด้วย
+      const rawReason = (item.reason !== undefined && item.reason !== null && String(item.reason).trim() !== '')
+        ? item.reason
+        : String(item.note || '').replace(/^\[[^\]]*\]\s*/, '');
+      const reasonStr = sanitizeArduinoReason(rawReason);
 
-      if (!includeSeq) {
-        return `${mode},${srcStr},${acStr},${startIso},${endIso},${durStr},${reasonStr}`;
-      }
-
-      const payload = `${seqNumber}|${mode}|${srcStr}|${acStr}|${startIso}|${endIso}|${durStr}|${reasonStr}`;
-      const crc = calcUtf8Crc32Hex(payload);
-      return `${seqNumber},${mode},${srcStr},${acStr},${startIso},${endIso},${durStr},${reasonStr},${crc}`;
+      // Protocol v1 always sends the same 9-column record as /logs CSV.
+      // seq=0 means "assign a new sequence on the Arduino"; the board re-sequences on save.
+      const seq = includeSeq ? Number(seqNumber) : (Number(item.arduinoSeq) || 0);
+      const fields = [String(seq), mode, srcStr, acStr, startIso, endIso, durStr, reasonStr];
+      const crc = calcUtf8Crc32Hex(fields.join('|'));
+      return `${fields.join(',')},${crc}`;
     }
 
     async function postLogLineToArduino(csvPayload, targetLogItem = null) {
@@ -1186,13 +2682,14 @@
       if (!baseUrl) return;
 
       try {
-        const res = await fetch(baseUrl, {
+        const res = await fetchWithTimeout(`${baseUrl}/logs`, {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          headers: apiHeaders({ 'Content-Type': 'text/plain;charset=utf-8' }),
+          cache: 'no-store',
           body: csvPayload
         });
         const respText = (await res.text()).trim();
-        if (res.ok) {
+        if (res.ok && /^SAVED OK SEQ=\d+$/i.test(respText)) {
           const seqMatch = respText.match(/SEQ=(\d+)/i);
           if (seqMatch && targetLogItem) {
             targetLogItem.arduinoSeq = parseInt(seqMatch[1], 10);
@@ -1201,11 +2698,11 @@
           fb.textContent = `[SENT OK ${getThaiDateParts(Date.now()).timeStr}] ${respText || 'SAVED OK'} → ${csvPayload}`;
           fb.className = 'mt-2 font-mono-tech text-[11px] text-emerald-300';
         } else {
-          fb.textContent = `[HTTP ${res.status}] Arduino ตอบกลับไม่สำเร็จ: ${respText || csvPayload}`;
+          fb.textContent = `[HTTP ${res.status}] Arduino ตอบกลับไม่สำเร็จ: ${respText || 'รูปแบบคำตอบไม่ตรง Protocol v1'}`;
           fb.className = 'mt-2 font-mono-tech text-[11px] text-amber-300';
         }
       } catch (err) {
-        fb.textContent = `[OFFLINE / SIM] ส่งไปยัง ${baseUrl} ไม่ได้ (หากทดสอบบนเครื่องที่ไม่มีบอร์ดต่ออยู่ถือว่าปกติ): ${csvPayload}`;
+        fb.textContent = `[OFFLINE / SIM] ส่งไปยัง ${baseUrl} ไม่ได้: ${csvPayload}`;
         fb.className = 'mt-2 font-mono-tech text-[11px] text-rose-400';
       }
     }
@@ -1240,7 +2737,7 @@
       });
 
       document.getElementById('arduinoLogEditorTextarea').value = lines.join('\n');
-      setLogEditorMsg('[READY] สร้างข้อมูลทดสอบในกล่องจำลองแล้ว (ยังไม่ทับ Log จริงจนกว่าจะกด Import Log) — เวลาอิงตามเวลาไทยปัจจุบัน');
+      setLogEditorMsg('[READY] สร้างข้อมูลทดสอบในกล่องจำลองแล้ว — เวลาอิงตามเวลาไทยปัจจุบัน');
     }
 
     function recalcCrcInEditor() {
@@ -1281,48 +2778,69 @@
       return Date.parse(withTz);
     }
 
-    function importLogFromCsvString(csvText, sourceLabel = 'Editor') {
-      const lines = String(csvText || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    function importLogFromCsvString(csvText, sourceLabel = 'Editor', silent = false) {
+      const lines = String(csvText || '').replace(/^\uFEFF/, '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
       if (lines.length === 0) {
-        setLogEditorMsg('[ERROR] ไม่พบข้อมูลบรรทัด Log สำหรับ Import', true);
-        return;
+        if (!silent) setLogEditorMsg('[ERROR] ไม่พบข้อมูลบรรทัด Log สำหรับ Import', true);
+        return false;
+      }
+
+      const hasHeader = lines[0].toLowerCase().startsWith('seq,');
+      if (!hasHeader && !silent) {
+        setLogEditorMsg('[WARN] ไม่พบ Header "seq,mode,sources,..." — จะพยายามอ่านทุกบรรทัดเป็นข้อมูล', true);
+      }
+
+      // การ Import จาก editor/ไฟล์ จะแทนที่ประวัติเดิมทั้งหมด -> ยืนยันก่อนกันข้อมูลหาย
+      if (!silent && sourceLabel !== 'Arduino-SD' && logs.length > 0) {
+        const ok = confirm(`การ Import จะแทนที่ Log ที่มีอยู่ ${logs.length} รายการในเบราว์เซอร์ทั้งหมด ยืนยันหรือไม่?`);
+        if (!ok) {
+          setLogEditorMsg('[CANCELLED] ยกเลิกการ Import — ข้อมูลเดิมยังอยู่ครบ', true);
+          return false;
+        }
       }
 
       const parsedLogs = [];
       let lineIndex = 0;
+      let badRows = 0;
 
       for (const line of lines) {
         lineIndex++;
-        if (lineIndex === 1 && line.toLowerCase().startsWith('seq,')) continue;
+        if (lineIndex === 1 && hasHeader) continue;
 
         const cols = line.split(',');
-        if (cols.length < 8) continue;
+        if (cols.length < 8) { badRows++; continue; }
 
-        const seq = parseInt(cols[0], 10) || lineIndex;
+        const seqParsed = parseInt(cols[0], 10);
+        const seq = Number.isFinite(seqParsed) ? seqParsed : lineIndex;
         const modeRaw = (cols[1] || 'RUNNING').trim().toUpperCase();
         const srcArr = (cols[2] || '0-0-0-0-0-0').split('-').map(v => (v.trim() === '1' ? 1 : 0));
         while (srcArr.length < 6) srcArr.push(0);
         const acStr = (cols[3] || 'AC_OK').trim().toUpperCase();
         const startStr = (cols[4] || '').trim();
         const endStr = (cols[5] || '').trim();
-        const durMin = parseFloat(cols[6]) || 0;
+        const durMin = parseFloat(cols[6]);
         const reason = sanitizeArduinoReason(cols[7] || '');
         const providedCrc = (cols[8] || '').trim().toUpperCase();
 
         const expectedCrc = calcUtf8Crc32Hex(cols.slice(0, 8).map(c => c.trim()).join('|'));
         if (providedCrc && providedCrc !== expectedCrc) {
-          setLogEditorMsg(`[CRC MISMATCH แถวที่ ${lineIndex} seq=${seq}] CRC ไม่ตรง (${providedCrc} != ${expectedCrc}) — กด "อัปเดต CRC32 ทุกบรรทัด" ก่อน Import`, true);
-          return;
+          if (!silent) {
+            setLogEditorMsg(`[CRC MISMATCH แถวที่ ${lineIndex} seq=${cols[0]}] CRC ไม่ตรง (${providedCrc} != ${expectedCrc})`, true);
+          }
+          return false;
         }
 
-        const startMs = parseThaiIsoDateToMs(startStr) || Date.now();
-        const endMs = parseThaiIsoDateToMs(endStr) || (startMs + durMin * 60000);
+        const startMs = parseThaiIsoDateToMs(startStr);
+        const endMs = parseThaiIsoDateToMs(endStr);
+        if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) { badRows++; continue; }
+        if (!Number.isFinite(durMin) || durMin < 0) { badRows++; continue; }
+
         const tParts = getThaiDateParts(startMs);
         const status = modeRaw.includes('BREAKDOWN') ? 'BREAKDOWN' : 'RUNNING';
         const rate = status === 'RUNNING' ? getCurrentCombinedDoseRateAtTime(startMs, srcArr) : 0;
 
         parsedLogs.push({
-          id: `SIM-LOG-${seq}-${startMs}-${lineIndex}`,
+          id: `SD-LOG-${seq}-${startMs}-${lineIndex}`,
           arduinoSeq: seq,
           status,
           acStatus: acStr === 'AC_FAIL' ? 'AC_FAIL' : 'AC_OK',
@@ -1336,24 +2854,53 @@
           doseUnit: co60Config.unit,
           fiscalYearBE: tParts.fiscalYearBE,
           fiscalQuarter: tParts.fiscalQuarter,
+          reason,
           note: `[${sourceLabel} #${seq}] ${reason || acStr}`
         });
       }
 
       if (parsedLogs.length === 0) {
-        setLogEditorMsg('[ERROR] รูปแบบบรรทัดไม่ถูกต้อง ต้องมีอย่างน้อย 8 คอลัมน์ (seq,mode,sources,ac_status,start_time,end_time,duration_min,reason)', true);
-        return;
+        if (sourceLabel === 'Arduino-SD') {
+          // SD ว่างจริง (มีเฉพาะ Header) -> ล้าง Log ที่ค้างจากรอบก่อน
+          logs = [];
+          lastImportedStats = { count: 0, maxSeq: 0, newestEndMs: 0, sourceLabel, at: Date.now() };
+          saveLogs();
+          refreshDashboard();
+          if (!silent) setLogEditorMsg('[EMPTY] Arduino SD Card ยังไม่มีรายการบันทึก', true);
+          return true;
+        }
+        if (!silent) setLogEditorMsg(`[ERROR] อ่านรายการ Log ไม่ได้ (${badRows} บรรทัดไม่ถูกต้อง)`, true);
+        return false;
       }
+
+      const stats = parsedLogs.reduce((acc, item) => {
+        acc.count++;
+        acc.maxSeq = Math.max(acc.maxSeq, Number(item.arduinoSeq) || 0);
+        acc.newestEndMs = Math.max(acc.newestEndMs, Number(item.endTimeMs) || 0);
+        return acc;
+      }, { count: 0, maxSeq: 0, newestEndMs: 0 });
+      lastImportedStats = { ...stats, sourceLabel, at: Date.now() };
+      if (sourceLabel !== 'Arduino-SD' && !isSimulationMode) {
+        // Import จากไฟล์/กล่องแก้ไข ไม่ใช่ข้อมูลสดจาก SD -> อย่าติดป้าย SYNCED
+        lastLogSyncOk = false;
+        lastLogSyncError = 'MANUAL_IMPORT';
+      }
+      updateLogFreshnessBadge();
 
       logs = parsedLogs.reverse();
       saveLogs();
       refreshDashboard();
-      setLogEditorMsg(`[IMPORT SUCCESS] นำเข้า ${parsedLogs.length} รายการจาก ${sourceLabel} สำเร็จ — กราฟและตัวเลข KPI อัปเดตแล้ว`);
+      if (!silent) {
+        const badNote = badRows > 0 ? ` • ข้าม ${badRows} บรรทัดที่ผิดรูปแบบ` : '';
+        setLogEditorMsg(`[IMPORT SUCCESS] นำเข้า ${parsedLogs.length} รายการจาก ${sourceLabel} สำเร็จ${badNote} — กราฟและตัวเลข KPI อัปเดตแล้ว`, badRows > 0);
+      }
+      console.info(`[import] ${sourceLabel}: ${parsedLogs.length} rows, skipped ${badRows}`);
+      return true;
     }
 
     function importLogFromEditor() {
       const text = document.getElementById('arduinoLogEditorTextarea').value;
-      importLogFromCsvString(text, 'LogEditor');
+      importLogFromCsvString(text, 'LogEditor', false);
     }
 
     function handleCsvFileUpload(event) {
@@ -1363,7 +2910,7 @@
       reader.onload = () => {
         const content = String(reader.result || '');
         document.getElementById('arduinoLogEditorTextarea').value = content;
-        importLogFromCsvString(content, file.name);
+        importLogFromCsvString(content, file.name, false);
       };
       reader.readAsText(file, 'utf-8');
       event.target.value = '';
@@ -1398,18 +2945,117 @@
       setLogEditorMsg(`[EXPORTED] ส่งออกไฟล์ Log ${reportLogs.length} รายการ และอัปเดตข้อความในกล่องแก้ไขเรียบร้อย`);
     }
 
+    function collectReportLogs() {
+      return [...logs]
+        .filter(item => item && (item.status === 'RUNNING' || item.status === 'BREAKDOWN'))
+        .reverse();
+    }
+
+    function buildArduinoCsvText(reportLogs) {
+      const lines = ['seq,mode,sources,ac_status,start_time,end_time,duration_min,reason,crc32'];
+      reportLogs.forEach((item, idx) => {
+        const seqVal = item.arduinoSeq || (idx + 1);
+        lines.push(buildArduinoCsvLineFromLogItem(item, true, seqVal));
+      });
+      return lines.join('\n');
+    }
+
+    async function writeTextFileToComputer(text, filename, mime) {
+      const payload = mime.indexOf('text/csv') === 0 ? '\uFEFF' + text : text;
+      if (typeof window.showSaveFilePicker === 'function') {
+        try {
+          const ext = filename.slice(filename.lastIndexOf('.'));
+          const handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{
+              description: mime.indexOf('json') >= 0 ? 'JSON file' : 'CSV file',
+              accept: { [mime.split(';')[0]]: [ext] }
+            }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(payload);
+          await writable.close();
+          return true;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return false;
+          // fallback to download if the picker is not permitted
+        }
+      }
+      const blob = new Blob([payload], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      return true;
+    }
+
+    async function saveLogFile(format) {
+      document.querySelectorAll('details.save-menu[open]').forEach(d => { d.open = false; });
+      const reportLogs = collectReportLogs();
+      if (reportLogs.length === 0) {
+        alert('ยังไม่มีข้อมูล Log สำหรับบันทึก');
+        return;
+      }
+
+      const dateParts = getThaiDateParts(Date.now());
+      const stamp = `${dateParts.yearBE}-${String(dateParts.monthIndex + 1).padStart(2, '0')}-${String(dateParts.day).padStart(2, '0')}_${dateParts.timeStr.replace(/:/g, '')}`;
+      let text;
+      let filename;
+      let mime;
+
+      if (format === 'json') {
+        text = JSON.stringify({
+          schema: 'GAMMA_LOGS_EXPORT_V1',
+          exportedAtThai: dateParts.fullStr,
+          co60Config: { ...co60Config },
+          presets: presets.map(p => ({
+            id: p.id,
+            name: p.name,
+            sources: [...p.sources],
+            combinedRatePerMin: p.combinedRatePerMin
+          })),
+          logs: reportLogs
+        }, null, 2);
+        filename = `GAMMA_LOGS_${stamp}.json`;
+        mime = 'application/json;charset=utf-8';
+      } else {
+        text = buildArduinoCsvText(reportLogs);
+        const editor = document.getElementById('arduinoLogEditorTextarea');
+        if (editor) editor.value = text;
+        filename = `GAMMA_LOGS_${stamp}.csv`;
+        mime = 'text/csv;charset=utf-8';
+      }
+
+      const saved = await writeTextFileToComputer(text, filename, mime);
+      if (saved) {
+        setLogEditorMsg(`[SAVED] บันทึก ${filename} (${reportLogs.length} รายการ) ลงคอมพิวเตอร์เรียบร้อย`);
+      }
+    }
+
     function getSourcePatternKey(sourcesArr) {
       return sourcesArr.map(v => (v === 1 ? '1' : '0')).join('');
     }
 
     function formatSourcesText(sourcesArr) {
-      const list = sourcesArr.map((v, i) => (v === 1 ? `S${i + 1}` : null)).filter(Boolean);
+      const arr = Array.isArray(sourcesArr) ? sourcesArr : [];
+      const list = arr.map((v, i) => (v === 1 ? `S${i + 1}` : null)).filter(Boolean);
       return list.length > 0 ? list.join('+') : 'NONE';
     }
 
-    function dateBEToThaiMidnightMs(day, monthIdx, yearBE) {
+    function daysInMonthBE(monthIdx, yearBE) {
       const yearAD = yearBE - 543;
-      const iso = `${String(yearAD).padStart(4, '0')}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00+07:00`;
+      return new Date(Date.UTC(yearAD, monthIdx + 1, 0)).getUTCDate();
+    }
+
+    function dateBEToThaiMidnightMs(day, monthIdx, yearBE) {
+      const safeYearBE = Number.isFinite(yearBE) ? yearBE : 2568;
+      const yearAD = safeYearBE - 543;
+      const safeMonth = Math.min(11, Math.max(0, Number.isFinite(monthIdx) ? monthIdx : 0));
+      const maxDay = daysInMonthBE(safeMonth, safeYearBE);
+      const safeDay = Math.min(maxDay, Math.max(1, Number.isFinite(day) ? day : 1));
+      const iso = `${String(yearAD).padStart(4, '0')}-${String(safeMonth + 1).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}T00:00:00+07:00`;
       return Date.parse(iso);
     }
 
@@ -1439,9 +3085,7 @@
       if (key === '000000') return 0;
 
       const matchedPreset = presets.find(p => getSourcePatternKey(p.sources) === key);
-      if (matchedPreset) {
-        return parseFloat(matchedPreset.combinedRatePerMin) || 0;
-      }
+      if (matchedPreset) return parseFloat(matchedPreset.combinedRatePerMin) || 0;
 
       if (key === getSourcePatternKey(co60Config.selectedSources)) {
         return parseFloat(co60Config.refCombinedDoseRatePerMin) || 0;
@@ -1545,7 +3189,10 @@
 
       try {
         const savedCfg = localStorage.getItem(CO60_SETTINGS_KEY);
-        if (savedCfg) co60Config = { ...co60Config, ...JSON.parse(savedCfg) };
+        if (savedCfg) {
+          const parsedCfg = JSON.parse(savedCfg);
+          if (parsedCfg && typeof parsedCfg === 'object') co60Config = { ...co60Config, ...parsedCfg };
+        }
       } catch (e) {}
 
       try {
@@ -1555,6 +3202,25 @@
           if (Array.isArray(parsed) && parsed.length > 0) presets = parsed;
         }
       } catch (e) {}
+
+      // กัน localStorage/JSON ที่เสียหายทำให้ UI พัง
+      if (!Array.isArray(co60Config.selectedSources) || co60Config.selectedSources.length !== 6) {
+        co60Config.selectedSources = [1, 1, 1, 1, 1, 1];
+      }
+      co60Config.selectedSources = co60Config.selectedSources.map(v => (Number(v) === 1 ? 1 : 0));
+      if (co60Config.unit !== 'Gy' && co60Config.unit !== 'kGy') co60Config.unit = 'kGy';
+      co60Config.initialCurie = Number(co60Config.initialCurie) || 0;
+      co60Config.refCombinedDoseRatePerMin = Number(co60Config.refCombinedDoseRatePerMin) || 0;
+      ['co60RefDay', 'co60RefMonth', 'co60RefYearBE', 'doseRefDay', 'doseRefMonth', 'doseRefYearBE']
+        .forEach(k => { co60Config[k] = Number(co60Config[k]) || 0; });
+      presets = (Array.isArray(presets) ? presets : [])
+        .filter(p => p && Array.isArray(p.sources))
+        .map((p, i) => ({
+          id: String(p.id || `preset-${i}`),
+          name: String(p.name || `Preset ${i + 1}`),
+          sources: p.sources.slice(0, 6).map(v => (Number(v) === 1 ? 1 : 0)).concat([0, 0, 0, 0, 0, 0]).slice(0, 6),
+          combinedRatePerMin: Number(p.combinedRatePerMin) || 0
+        }));
 
       document.getElementById('initialCurieInput').value = co60Config.initialCurie;
       document.getElementById('co60RefDay').value = co60Config.co60RefDay;
@@ -1598,9 +3264,9 @@
       const currentVal = sel.value;
       sel.innerHTML = `<option value="">-- เลือก Preset ที่บันทึกไว้ --</option>`;
       presets.forEach(p => {
-        const srcText = formatSourcesText(p.sources);
+        const srcText = formatSourcesText(Array.isArray(p.sources) ? p.sources : []);
         const rate = parseFloat(p.combinedRatePerMin) || 0;
-        sel.innerHTML += `<option value="${p.id}">${p.name} [${srcText} | รวม ${rate.toFixed(4)} ${co60Config.unit}/นาที]</option>`;
+        sel.innerHTML += `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} [${escapeHtml(srcText)} | รวม ${rate.toFixed(4)} ${escapeHtml(co60Config.unit)}/นาที]</option>`;
       });
       if (currentVal) sel.value = currentVal;
     }
@@ -1707,7 +3373,11 @@
 
       updateRadiationRealtimeDisplay();
 
-      const elapsedMs = Math.max(0, nowMs - activeSession.startTimeMs);
+      // โหมด Arduino จริงใช้ session_sec จากบอร์ด เพื่อให้เวลารอบไม่รีเซ็ตเมื่อรีเฟรชหน้า
+      const sessionStartRef = isSimulationMode
+        ? activeSession.startTimeMs
+        : (hwSessionStartMs !== null ? hwSessionStartMs : activeSession.startTimeMs);
+      const elapsedMs = Math.max(0, nowMs - sessionStartRef);
       const elapsedSec = Math.floor(elapsedMs / 1000);
       const h = String(Math.floor(elapsedSec / 3600)).padStart(2, '0');
       const m = String(Math.floor((elapsedSec % 3600) / 60)).padStart(2, '0');
@@ -1724,6 +3394,8 @@
         liveDoseEl.textContent = `0.0000 ${co60Config.unit}`;
         liveDoseEl.className = 'font-orbitron text-xl md:text-2xl font-bold text-slate-500 tracking-wider mt-1';
       }
+
+      updateLogFreshnessBadge();
     }
 
     function updateAcBadge(acOk) {
@@ -1739,8 +3411,10 @@
     }
 
     function evaluateSystemState(newSources, acOk = lastAcOk) {
+      const safeSources = Array.isArray(newSources) ? newSources.slice(0, 6) : currentSources.slice(0, 6);
+      while (safeSources.length < 6) safeSources.push(0);
       updateAcBadge(acOk);
-      const anySourceUp = newSources.some(v => v === 1);
+      const anySourceUp = safeSources.some(v => v === 1);
       const cb = document.getElementById('breakdownCheckbox');
       const interlockBadge = document.getElementById('interlockBadge');
 
@@ -1762,7 +3436,7 @@
       if (!acOk && !anySourceUp) {
         nextStatus = 'BREAKDOWN';
         if (!breakdownReason.trim()) {
-          breakdownReason = 'AC_LOST_OR_PM';
+          breakdownReason = 'AC_LOST_BREAKDOWN';
           document.getElementById('breakdownReasonInput').value = breakdownReason;
         }
       } else if (anySourceUp) {
@@ -1771,12 +3445,17 @@
         nextStatus = 'BREAKDOWN';
       } else {
         nextStatus = 'STOP';
+        // AC กลับมาแล้ว: ล้าง reason อัตโนมัติ กันติดไปตอนกด PM ครั้งถัดไป
+        if (acOk && breakdownReason.trim() === 'AC_LOST_BREAKDOWN') {
+          breakdownReason = '';
+          document.getElementById('breakdownReasonInput').value = '';
+        }
       }
 
-      const sourcesChanged = JSON.stringify(newSources) !== JSON.stringify(activeSession.sources);
+      const sourcesChanged = JSON.stringify(safeSources) !== JSON.stringify(activeSession.sources);
       const statusChanged = nextStatus !== activeSession.status;
 
-      currentSources = [...newSources];
+      currentSources = [...safeSources];
       updateRadiationRealtimeDisplay();
       renderSourceCards();
       updateMainStatusVisuals(nextStatus);
@@ -1790,7 +3469,7 @@
       const nowMs = Date.now();
       const durationMs = Math.max(0, nowMs - activeSession.startTimeMs);
 
-      if (durationMs >= 500 && (activeSession.status === 'RUNNING' || activeSession.status === 'BREAKDOWN')) {
+      if (isSimulationMode && durationMs >= 500 && (activeSession.status === 'RUNNING' || activeSession.status === 'BREAKDOWN')) {
         const startParts = getThaiDateParts(activeSession.startTimeMs);
         const exactMinutes = durationMs / 60000;
         const durationMinutes = +exactMinutes.toFixed(2);
@@ -1804,11 +3483,12 @@
           absorbedDose = exactMinutes * combinedRate;
         }
 
+        const sessionNote = activeSession.note || getDefaultNote(activeSession.status, activeSession.sources);
         const newLogItem = {
           id: 'LOG-' + nowMs,
           arduinoSeq: null,
           status: activeSession.status,
-          acStatus: lastAcOk ? 'AC_OK' : 'AC_FAIL',
+          acStatus: activeSession.acOk ? 'AC_OK' : 'AC_FAIL',
           sources: [...activeSession.sources],
           startTimeMs: activeSession.startTimeMs,
           endTimeMs: nowMs,
@@ -1819,15 +3499,16 @@
           doseUnit: co60Config.unit,
           fiscalYearBE: startParts.fiscalYearBE,
           fiscalQuarter: startParts.fiscalQuarter,
-          note: activeSession.note || getDefaultNote(activeSession.status, activeSession.sources)
+          reason: sanitizeArduinoReason(sessionNote),
+          note: sessionNote
         };
 
         logs.unshift(newLogItem);
         saveLogs();
 
         if (autoWriteArduinoEnabled) {
-          const payload7Cols = buildArduinoCsvLineFromLogItem(newLogItem, false);
-          postLogLineToArduino(payload7Cols, newLogItem);
+          const payloadCsvRow = buildArduinoCsvLineFromLogItem(newLogItem, false);
+          postLogLineToArduino(payloadCsvRow, newLogItem);
         }
       }
 
@@ -1835,7 +3516,8 @@
         status: nextStatus,
         sources: [...nextSources],
         startTimeMs: nowMs,
-        note: getDefaultNote(nextStatus, nextSources)
+        note: getDefaultNote(nextStatus, nextSources),
+        acOk: lastAcOk
       };
 
       const newStartParts = getThaiDateParts(nowMs);
@@ -1849,7 +3531,7 @@
         return `IRRADIATING ${activeList}`;
       }
       if (status === 'BREAKDOWN') {
-        return breakdownReason.trim() || 'AC_LOST_OR_PM';
+        return breakdownReason.trim() || 'AC_LOST_BREAKDOWN';
       }
       return 'STANDBY_STOP';
     }
@@ -1860,7 +3542,7 @@
         return;
       }
       isBreakdownChecked = document.getElementById('breakdownCheckbox').checked;
-      const reasonText = (document.getElementById('breakdownReasonInput')?.value || '').trim() || 'MANUAL_BREAKDOWN_OR_PM';
+      const reasonText = (document.getElementById('breakdownReasonInput')?.value || '').trim() || 'MANUAL_BREAKDOWN';
       if (!isSimulationMode) {
         if (isBreakdownChecked) {
           postModeToArduino('BREAKDOWN', reasonText);
@@ -1874,11 +3556,17 @@
     function updateBreakdownReason() {
       breakdownReason = document.getElementById('breakdownReasonInput').value;
       if (activeSession.status === 'BREAKDOWN') {
-        activeSession.note = breakdownReason.trim() || 'AC_LOST_OR_PM';
-        if (!isSimulationMode) {
-          postModeToArduino('BREAKDOWN', activeSession.note);
-        }
+        activeSession.note = breakdownReason.trim() || 'AC_LOST_BREAKDOWN';
       }
+      if (isSimulationMode || activeSession.status !== 'BREAKDOWN') return;
+      // debounce: ห้ามยิง POST /mode ทุก keystroke เพราะ ENC28J60 รับได้ทีละ connection
+      if (breakdownReasonPostTimer) clearTimeout(breakdownReasonPostTimer);
+      breakdownReasonPostTimer = setTimeout(() => {
+        breakdownReasonPostTimer = null;
+        if (!isSimulationMode && activeSession.status === 'BREAKDOWN') {
+          postModeToArduino('BREAKDOWN', breakdownReason.trim() || 'MANUAL_BREAKDOWN');
+        }
+      }, 700);
     }
 
     function renderSourceCards() {
@@ -1912,7 +3600,7 @@
                 ${isUp ? 'กำลังฉายรังสี' : 'ตำแหน่งเก็บ'}
               </div>
               <div class="font-mono-tech text-[10px] ${isUp ? 'text-emerald-300' : 'text-slate-500'}">
-                PIN D${idx + 2} : ${isUp ? 'ACTIVE' : 'SAFE'}
+                PIN D${idx === 0 ? 2 : idx === 1 ? 3 : idx + 3} : ${isUp ? 'ACTIVE' : 'SAFE'}
               </div>
             </div>
           </div>
@@ -1974,24 +3662,44 @@
       const btn = document.getElementById('toggleModeBtn');
       const demoBar = document.getElementById('demoQuickBar');
       const hint = document.getElementById('simControlHint');
+      const hwBadge = document.getElementById('hwStatusBadge');
 
       if (isSimulationMode) {
         stopLiveArduinoPolling();
+        hwSessionStartMs = null;
+        modeCommandPendingUntil = 0;
         indicator.className = 'w-3 h-3 rounded-full bg-amber-400 animate-pulse';
         statusText.textContent = 'โหมดจำลอง (SIMULATION)';
         statusText.className = 'font-bold text-amber-300';
         btn.textContent = 'สลับเป็น Arduino จริง';
         demoBar.classList.remove('hidden');
         hint.textContent = 'คลิกที่ Source 1-6 ด้านล่างเพื่อจำลองเปิด/ปิดไฟ';
+        hwBadge.textContent = 'HW: SIMULATION';
+        hwBadge.className = 'text-xs font-mono-tech text-slate-300 px-2 py-0.5 border border-slate-600 bg-slate-900/80 rounded';
+        setAutoWriteState(false);
+        lastConnectionState = 'sim';
+        showToast('ℹ️ กลับสู่โหมดจำลอง', 'info', 1800);
+        playSequence([440, 330], 0.1, 0.05, 0.025, 'sine');
       } else {
+        setAutoWriteState(false, 'ล็อก Auto Write จากหน้าเว็บอัตโนมัติ — บอร์ด Arduino จะเขียนลง SD Card เองและซิงก์มาแสดงผล');
+        if (isHttpsPageToHttpBoard()) {
+          const fb = document.getElementById('autoArduinoLogFeedback');
+          fb.textContent = '[HTTPS BLOCK] หน้านี้เปิดผ่าน HTTPS จะเรียก http://192.168.10.1 ไม่ได้ — เปิดไฟล์ในเครื่องหรือใช้ local HTTP server';
+          fb.className = 'mt-2 font-mono-tech text-[11px] text-amber-300';
+        }
         indicator.className = 'w-3 h-3 rounded-full bg-cyan-400 animate-ping';
-        statusText.textContent = 'โหมดเชื่อมต่อ Arduino จริง (LAN: 192.168.10.1)';
+        statusText.textContent = 'โหมดเชื่อมต่อ Arduino จริง';
         statusText.className = 'font-bold text-cyan-300';
         btn.textContent = 'กลับสู่โหมดจำลอง';
         demoBar.classList.add('hidden');
         hint.textContent = 'กำลังรับสัญญาณ Source 1-6 และไฟ AC แบบ Real-time จาก Arduino ทุก 1 วินาที';
+        lastConnectionState = 'connecting';
+        ensureAudioContext();
+        playConnectSound();
+        showToast('🔄 กำลังเชื่อมต่อ Arduino...', 'info', 15000);
         startLiveArduinoPolling();
       }
+      updateLogFreshnessBadge();
     }
 
     function initDateSelectors() {
@@ -2084,39 +3792,60 @@
       return reportOnlyLogs.filter(item => item.startTimeMs >= startRangeMs && item.startTimeMs <= endRangeMs);
     }
 
+    // แถว BREAKDOWN ที่ต่อเนื่องกัน (end ของแถวก่อน = start ของแถวถัดไป) มาจาก checkpoint
+    // ทุก 15 นาทีของ Firmware: นับเป็น 1 ครั้ง แต่ยังแสดงทุกแถวในตารางเพื่อรักษาข้อมูลดิบ
+    function countBreakdownSessions(items) {
+      const rows = (Array.isArray(items) ? items : [])
+        .filter(i => i && i.status === 'BREAKDOWN' && Number.isFinite(Number(i.startTimeMs)))
+        .sort((a, b) => Number(a.startTimeMs) - Number(b.startTimeMs));
+      let count = 0;
+      let lastEnd = null;
+      for (const row of rows) {
+        const start = Number(row.startTimeMs);
+        if (lastEnd === null || Math.abs(start - lastEnd) > 2000) count++;
+        const end = Number(row.endTimeMs);
+        lastEnd = Number.isFinite(end) ? end : start;
+      }
+      return count;
+    }
+
     function refreshDashboard() {
       const filtered = getFilteredLogs();
       const unit = co60Config.unit;
 
       let runMin = 0, breakMin = 0;
-      let runCount = 0, breakCount = 0;
+      let runCount = 0;
       let totalDose = 0;
       const sourceMinutes = [0, 0, 0, 0, 0, 0];
       const sourceDoses = [0, 0, 0, 0, 0, 0];
 
+      let unpricedRuns = 0;
       filtered.forEach(item => {
+        const durMin = Number(item.durationMinutes) || 0;
         if (item.status === 'RUNNING') {
-          runMin += item.durationMinutes;
+          runMin += durMin;
           runCount++;
+          if (Number(item.doseRatePerMin) <= 0) unpricedRuns++;
 
-          let itemDose = item.absorbedDose || 0;
+          let itemDose = Number(item.absorbedDose) || 0;
           if (item.doseUnit && item.doseUnit !== unit) {
             if (item.doseUnit === 'Gy' && unit === 'kGy') itemDose = itemDose / 1000;
             if (item.doseUnit === 'kGy' && unit === 'Gy') itemDose = itemDose * 1000;
           }
           totalDose += itemDose;
 
-          item.sources.forEach((active, idx) => {
-            if (active === 1) {
-              sourceMinutes[idx] += item.durationMinutes;
+          const srcArr = Array.isArray(item.sources) ? item.sources : [];
+          srcArr.forEach((active, idx) => {
+            if (active === 1 && idx < 6) {
+              sourceMinutes[idx] += durMin;
               sourceDoses[idx] += itemDose;
             }
           });
         } else if (item.status === 'BREAKDOWN') {
-          breakMin += item.durationMinutes;
-          breakCount++;
+          breakMin += durMin;
         }
       });
+      const breakCount = countBreakdownSessions(filtered);
 
       const totalReportedMin = runMin + breakMin;
       const runSharePct = totalReportedMin > 0 ? ((runMin / totalReportedMin) * 100) : 100;
@@ -2125,8 +3854,9 @@
       document.getElementById('kpiRunSub').textContent = `${runMin.toFixed(2)} นาที (${runCount} รอบ)`;
 
       document.getElementById('kpiTotalDose').textContent = `${totalDose.toFixed(2)} ${unit}`;
-      document.getElementById('kpiTotalDoseSub').textContent =
-        runMin > 0 ? `เฉลี่ย ${(totalDose / runMin).toFixed(4)} ${unit}/นาที` : 'ปริมาณรังสีรวมที่ฉายขณะเดินเครื่อง';
+      document.getElementById('kpiTotalDoseSub').textContent = unpricedRuns > 0
+        ? `⚠ ${unpricedRuns} รอบไม่มีค่า Dose Rate Mapping (นับโดสเป็น 0) — ตรวจ Preset/ชุด Source`
+        : (runMin > 0 ? `เฉลี่ย ${(totalDose / runMin).toFixed(4)} ${unit}/นาที` : 'ปริมาณรังสีรวมที่ฉายขณะเดินเครื่อง');
 
       document.getElementById('kpiBreakTime').textContent = `${(breakMin / 60).toFixed(2)} ชม.`;
       document.getElementById('kpiBreakSub').textContent = `${breakMin.toFixed(2)} นาที (${breakCount} ครั้ง)`;
@@ -2137,7 +3867,31 @@
       renderLogTable(filtered);
     }
 
+    let chartFallbackShown = false;
+    function showChartFallback() {
+      if (chartFallbackShown) return;
+      chartFallbackShown = true;
+      ['statusDoughnutChart', 'sourceBarChart'].forEach(id => {
+        const canvas = document.getElementById(id);
+        if (!canvas || !canvas.parentElement) return;
+        canvas.parentElement.innerHTML =
+          '<div class="text-xs text-amber-300 text-center px-3">โหลด Chart.js จาก CDN ไม่ได้ — กราฟจะไม่แสดง (ตัวเลข KPI และตารางยังใช้งานได้)</div>';
+      });
+    }
+
     function renderCharts(runMin, breakMin, sourceMinutes, sourceDoses) {
+      // ใช้งานใน LAN ที่ไม่มีอินเทอร์เน็ตได้: ถ้า Chart.js โหลดไม่ได้ ห้าม throw ทั้ง dashboard
+      if (typeof Chart === 'undefined') {
+        showChartFallback();
+        return;
+      }
+      // หน้ากราฟถูกซ่อนอยู่ -> ยังไม่ต้องสร้าง (สร้างตอนสลับไปหน้า Reports)
+      const reportsActive = document.getElementById('page-reports')?.classList.contains('active');
+      if (!reportsActive) {
+        chartsPending = true;
+        return;
+      }
+      chartsPending = false;
       const ctxDoughnut = document.getElementById('statusDoughnutChart').getContext('2d');
       if (doughnutChart) doughnutChart.destroy();
 
@@ -2210,12 +3964,7 @@
         'ไตรมาส 3 (เม.ย. - มิ.ย.)',
         'ไตรมาส 4 (ก.ค. - ก.ย.)'
       ];
-      const chartQLabels = [
-        'Q1 (ต.ค.-ธ.ค.)',
-        'Q2 (ม.ค.-มี.ค.)',
-        'Q3 (เม.ย.-มิ.ย.)',
-        'Q4 (ก.ค.-ก.ย.)'
-      ];
+      const chartQLabels = ['Q1 (ต.ค.-ธ.ค.)', 'Q2 (ม.ค.-มี.ค.)', 'Q3 (เม.ย.-มิ.ย.)', 'Q4 (ก.ค.-ก.ย.)'];
 
       const runHoursByQ = [0, 0, 0, 0];
       const breakHoursByQ = [0, 0, 0, 0];
@@ -2239,10 +3988,6 @@
         }
       });
 
-      const totalRunHours = runHoursByQ.reduce((a, b) => a + b, 0);
-      const totalBreakHours = breakHoursByQ.reduce((a, b) => a + b, 0);
-      const totalDose = doseByQ.reduce((a, b) => a + b, 0);
-
       return {
         unit,
         qLabels,
@@ -2250,9 +3995,9 @@
         runHoursByQ,
         breakHoursByQ,
         doseByQ,
-        totalRunHours,
-        totalBreakHours,
-        totalDose
+        totalRunHours: runHoursByQ.reduce((a, b) => a + b, 0),
+        totalBreakHours: breakHoursByQ.reduce((a, b) => a + b, 0),
+        totalDose: doseByQ.reduce((a, b) => a + b, 0)
       };
     }
 
@@ -2285,6 +4030,10 @@
     }
 
     function buildQuarterlyPrintChartImages(targetFY, stats) {
+      if (typeof Chart === 'undefined') {
+        // ไม่มี Chart.js: ข้ามภาพกราฟ แต่ตารางสรุปยังพิมพ์ได้
+        return;
+      }
       const unit = stats.unit;
 
       document.getElementById('printTimeChartTitle').textContent =
@@ -2386,45 +4135,53 @@
 
     function renderLogTable(filtered) {
       const tbody = document.getElementById('logTableBody');
-      if (filtered.length === 0) {
+      if (!Array.isArray(filtered) || filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-slate-500">ไม่พบข้อมูลบันทึก Log ในช่วงเวลาที่เลือก</td></tr>`;
         return;
       }
 
       tbody.innerHTML = filtered.map((item, index) => {
-        const startStr = getThaiDateParts(item.startTimeMs).fullStr;
-        const endStr = getThaiDateParts(item.endTimeMs).fullStr;
-        const activeSrc = item.sources.map((v, i) => v === 1 ? `S${i + 1}` : null).filter(Boolean).join('+') || '-';
+        const startMs = Number(item.startTimeMs);
+        const endMs = Number(item.endTimeMs);
+        const startStr = Number.isFinite(startMs) ? getThaiDateParts(startMs).fullStr : '-';
+        const endStr = Number.isFinite(endMs) ? getThaiDateParts(endMs).fullStr : '-';
+        const srcArr = Array.isArray(item.sources) ? item.sources : [];
+        const activeSrc = srcArr.map((v, i) => v === 1 ? `S${i + 1}` : null).filter(Boolean).join('+') || '-';
         const u = item.doseUnit || co60Config.unit;
-        const seqLabel = item.arduinoSeq ? `#${item.arduinoSeq}` : `${filtered.length - index}`;
+        const seqLabel = Number(item.arduinoSeq) > 0 ? `#${Number(item.arduinoSeq)}` : `${filtered.length - index}`;
+        const durMin = Number(item.durationMinutes);
+        const statusText = escapeHtml(item.status || '-');
+        const noteText = escapeHtml(item.note || '');
 
-        const badgeClass = item.status === 'RUNNING'
+        const isRunning = item.status === 'RUNNING';
+        const badgeClass = isRunning
           ? 'bg-emerald-950 text-emerald-300 border-emerald-500/40'
           : 'bg-rose-950 text-rose-300 border-rose-500/40';
 
-        const rateDisplay = item.status === 'RUNNING' ? `${(item.doseRatePerMin || 0).toFixed(4)} ${u}` : '-';
-        const doseDisplay = item.status === 'RUNNING' ? `${(item.absorbedDose || 0).toFixed(3)} ${u}` : '-';
+        const rateDisplay = isRunning ? `${Number(item.doseRatePerMin || 0).toFixed(4)} ${u}` : '-';
+        const doseDisplay = isRunning ? `${Number(item.absorbedDose || 0).toFixed(3)} ${u}` : '-';
 
         return `
           <tr class="hover:bg-cyan-950/20 transition">
             <td class="py-2 px-2.5 font-mono-tech text-xs text-slate-400">${seqLabel}</td>
             <td class="py-2 px-2.5">
-              <span class="px-2 py-0.5 text-[11px] font-mono-tech font-bold rounded border ${badgeClass}">${item.status}</span>
+              <span class="px-2 py-0.5 text-[11px] font-mono-tech font-bold rounded border ${badgeClass}">${statusText}</span>
             </td>
             <td class="py-2 px-2.5 font-mono-tech text-xs text-emerald-300">${activeSrc}</td>
             <td class="py-2 px-2.5 font-mono-tech text-xs">${startStr}</td>
             <td class="py-2 px-2.5 font-mono-tech text-xs">${endStr}</td>
-            <td class="py-2 px-2.5 font-mono-tech text-xs text-right font-bold text-white">${item.durationMinutes.toFixed(2)}</td>
+            <td class="py-2 px-2.5 font-mono-tech text-xs text-right font-bold text-white">${Number.isFinite(durMin) ? durMin.toFixed(2) : '-'}</td>
             <td class="py-2 px-2.5 font-mono-tech text-xs text-right text-purple-300">${rateDisplay}</td>
             <td class="py-2 px-2.5 font-mono-tech text-xs text-right font-bold text-emerald-300">${doseDisplay}</td>
-            <td class="py-2 px-2.5 text-xs text-amber-300">ปีงบ ${item.fiscalYearBE} (Q${item.fiscalQuarter})</td>
-            <td class="py-2 px-2.5 text-xs text-slate-300">${item.note}</td>
+            <td class="py-2 px-2.5 text-xs text-amber-300">ปีงบ ${Number(item.fiscalYearBE) || '-'} (Q${Number(item.fiscalQuarter) || '-'})</td>
+            <td class="py-2 px-2.5 text-xs text-slate-300">${noteText}</td>
           </tr>
         `;
       }).join('');
     }
 
     function printPdfReport() {
+      switchPage('reports', { silent: true, instant: true });
       const filterSelect = document.getElementById('filterModeSelect');
       if (filterSelect.value !== 'fiscal') {
         filterSelect.value = 'fiscal';
@@ -2445,19 +4202,26 @@
       buildQuarterlyPrintChartImages(targetFY, stats);
       renderQuarterlyPrintSummaryTable(targetFY, stats);
 
-      setTimeout(() => {
-        window.print();
-      }, 150);
+      setTimeout(() => { window.print(); }, 150);
     }
 
     function saveLogs() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+      } catch (e) {
+        if (!storageWarned) {
+          storageWarned = true;
+          console.error('[storage]', e);
+          setLogEditorMsg('[WARN] พื้นที่เก็บข้อมูลเบราว์เซอร์เต็ม — Log ใหม่จะไม่ถูกบันทึกถาวร', true);
+        }
+      }
     }
 
     function loadLogs() {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) logs = JSON.parse(saved);
+        const parsed = saved ? JSON.parse(saved) : [];
+        logs = Array.isArray(parsed) ? parsed.filter(x => x && typeof x === 'object') : [];
       } catch (e) {
         logs = [];
       }
@@ -2500,6 +4264,7 @@
           doseUnit: co60Config.unit,
           fiscalYearBE: parts.fiscalYearBE,
           fiscalQuarter: parts.fiscalQuarter,
+          reason: sanitizeArduinoReason(ev.note),
           note: ev.note
         });
       });
@@ -2512,12 +4277,18 @@
       initCo60CalibrationUI();
       initDateSelectors();
       generateArduinoSampleLogText();
+      updateEndpointLabel();
+      loadApiToken();
+      loadSoundSetting();
+      applyUiMode(getSavedUiMode());
+      initPageNavigation();
       const startParts = getThaiDateParts(activeSession.startTimeMs);
       document.getElementById('sessionStartDisplay').textContent = `เริ่มรอบ: ${startParts.timeStr} น.`;
       renderSourceCards();
       updateMainStatusVisuals('STOP');
       refreshDashboard();
       updateLiveClock();
+      updateLogFreshnessBadge();
       setInterval(updateLiveClock, 1000);
     });
   </script>
