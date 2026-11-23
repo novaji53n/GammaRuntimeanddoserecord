@@ -789,6 +789,8 @@
     html.is-mobile-device .device-mode-toggle { display: inline-flex; }
     /* ปุ่ม Serial ต้องเห็นได้ทั้งเดสก์ท็อปและมือถือ */
     #serialModeBtn { display: inline-flex !important; }
+    #serialChangeBtn { display: none !important; }
+    #serialChangeBtn.visible { display: inline-flex !important; }
 
     html.is-phone body {
       padding: 10px 8px 20px !important;
@@ -960,6 +962,9 @@
         </span>
         <button id="serialModeBtn" type="button" class="device-mode-toggle no-print" onclick="toggleSerialConnection()" title="เชื่อมต่อ Arduino ผ่าน USB Serial 115200">
           🔌 SERIAL
+        </button>
+        <button id="serialChangeBtn" type="button" class="device-mode-toggle no-print" onclick="changeSerialPort()" title="เลือก COM port ใหม่">
+          ↻ COM
         </button>
         <button id="deviceModeToggle" type="button" class="device-mode-toggle no-print" onclick="toggleDeviceMode()" title="สลับโหมดมือถือ / เดสก์ท็อป">
           📱 PHONE MODE
@@ -2073,6 +2078,8 @@
         serialBtn.textContent = '🔌 ตัด SERIAL';
         serialBtn.classList.add('ring-1', 'ring-emerald-400');
       }
+      const changeBtn = document.getElementById('serialChangeBtn');
+      if (changeBtn) changeBtn.classList.add('visible');
     }
 
     function setSimulationUiAfterSerial() {
@@ -2105,6 +2112,8 @@
         serialBtn.textContent = '🔌 SERIAL';
         serialBtn.classList.remove('ring-1', 'ring-emerald-400');
       }
+      const changeBtn = document.getElementById('serialChangeBtn');
+      if (changeBtn) changeBtn.classList.remove('visible');
       updateSimAcButton();
       evaluateSystemState(currentSources, true);
       updateLiveClock();
@@ -2133,36 +2142,34 @@
         return;
       }
       try {
-        showToast('🔍 กำลังค้นหา COM port... ถ้าไม่มีรายการ แปลว่า Windows ยังไม่เห็นบอร์ด', 'info', 5000);
-        const granted = await navigator.serial.getPorts().catch(() => []);
-        let port = (granted.length === 1) ? granted[0] : null;
-        if (!port) {
-          try {
-            port = await navigator.serial.requestPort();
-          } catch (pickErr) {
-            const pickMsg = String(pickErr && pickErr.message ? pickErr.message : pickErr);
-            const likelyNoPort = /no port|not found|no device|abort|cancel|select/i.test(pickMsg);
-            showToast(
-              likelyNoPort
-                ? '❌ ไม่พบ COM port — ตรวจสาย USB (ต้องเป็นสายข้อมูล), ไดรเวอร์ CH340/ATmega16U2 และปิด Serial Monitor'
-                : '❌ เปิดรายการ COM ไม่สำเร็จ: ' + pickMsg,
-              'error',
-              9000
-            );
-            setSimulationUiAfterSerial();
-            return;
-          }
+        showToast('🔍 กำลังเปิดรายการ COM — เลือกพอร์ตที่ถูกต้อง (ถ้ารายการว่าง = Windows ไม่เห็นบอร์ด)', 'info', 5000);
+        // ไม่ auto ใช้พอร์ตที่เคยอนุญาต เพราะถ้าเคยเลือกผิดจะกลับมาเลือกใหม่ไม่ได้
+        let port;
+        try {
+          port = await navigator.serial.requestPort();
+        } catch (pickErr) {
+          const pickMsg = String(pickErr && pickErr.message ? pickErr.message : pickErr);
+          const likelyNoPort = /no port|not found|no device|abort|cancel|select/i.test(pickMsg);
+          showToast(
+            likelyNoPort
+              ? '❌ ไม่ได้เลือก COM port — ตรวจสาย USB (ต้องเป็นสายข้อมูล), ไดรเวอร์ CH340/ATmega16U2 และปิด Serial Monitor'
+              : '❌ เปิดรายการ COM ไม่สำเร็จ: ' + pickMsg,
+            'error',
+            9000
+          );
+          setSimulationUiAfterSerial();
+          return;
         }
         try {
           await port.open({ baudRate: 115200 });
         } catch (openErr) {
-          // พอร์ตที่เคยอนุญาตอาจถูกถอดอยู่: ลองให้เลือกใหม่หนึ่งครั้ง
-          if (granted.length === 1) {
-            port = await navigator.serial.requestPort();
-            await port.open({ baudRate: 115200 });
-          } else {
-            throw openErr;
-          }
+          showToast(
+            `❌ เปิด COM นี้ไม่สำเร็จ: ${openErr && openErr.message ? openErr.message : openErr}\nกดปุ่ม ↻ COM เพื่อเลือกพอร์ตอื่น`,
+            'error',
+            9000
+          );
+          setSimulationUiAfterSerial();
+          return;
         }
         serialPort = port;
         serialMode = true;
@@ -2191,7 +2198,7 @@
         serialReadLoop().catch(() => {});
         setTimeout(() => {
           if (serialMode && lastConnectionState === 'connecting') {
-            showToast('⚠️ ยังไม่ได้รับข้อมูล @S — ตรวจ Baud 115200 และปิด Serial Monitor', 'warn', 7000);
+            showToast('⚠️ พอร์ตนี้ไม่ตอบสนอง @S — กดปุ่ม ↻ COM เพื่อเลือกพอร์ตใหม่ (ตรวจ Baud 115200 / ปิด Serial Monitor)', 'warn', 8000);
           }
         }, 6000);
       } catch (e) {
@@ -2203,7 +2210,7 @@
       }
     }
 
-    async function disconnectSerial(fromError = false) {
+    async function disconnectSerial(fromError = false, silent = false) {
       const wasSerial = serialMode;
       serialMode = false;
       try {
@@ -2222,7 +2229,7 @@
       serialLogLines = [];
       setSimulationUiAfterSerial();
       try { localStorage.setItem('gamma_conn_mode', 'simulation'); } catch (e) {}
-      if (wasSerial) {
+      if (wasSerial && !silent) {
         showToast(fromError ? '❌ Serial หลุดการเชื่อมต่อ' : '🔌 ตัดการเชื่อมต่อ Serial แล้ว', fromError ? 'error' : 'info', 3500);
       }
     }
@@ -2233,6 +2240,14 @@
       } else {
         await connectSerial();
       }
+    }
+
+    async function changeSerialPort() {
+      // ตัดพอร์ตเดิมก่อน แล้วเปิด picker ให้เลือกพอร์ตใหม่ได้เสมอ
+      if (serialMode || serialPort) {
+        await disconnectSerial(false, true);
+      }
+      await connectSerial();
     }
 
     async function serialReadLoop() {
@@ -2248,6 +2263,7 @@
           const { value, done } = await serialReader.read();
           if (done) break;
           serialBuffer += decoder.decode(value, { stream: true });
+          if (serialBuffer.length > 16384) serialBuffer = serialBuffer.slice(-8192);
           let idx;
           while ((idx = serialBuffer.indexOf('\n')) >= 0) {
             const line = serialBuffer.slice(0, idx).replace(/\r$/, '').trim();
