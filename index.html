@@ -787,6 +787,8 @@
     }
 
     html.is-mobile-device .device-mode-toggle { display: inline-flex; }
+    /* ปุ่ม Serial ต้องเห็นได้ทั้งเดสก์ท็อปและมือถือ */
+    #serialModeBtn { display: inline-flex !important; }
 
     html.is-phone body {
       padding: 10px 8px 20px !important;
@@ -956,6 +958,9 @@
         <span id="hwStatusBadge" class="text-xs font-mono-tech text-slate-300 px-2 py-0.5 border border-slate-600 bg-slate-900/80 rounded">
           HW: SIMULATION
         </span>
+        <button id="serialModeBtn" type="button" class="device-mode-toggle no-print" onclick="toggleSerialConnection()" title="เชื่อมต่อ Arduino ผ่าน USB Serial 115200">
+          🔌 SERIAL
+        </button>
         <button id="deviceModeToggle" type="button" class="device-mode-toggle no-print" onclick="toggleDeviceMode()" title="สลับโหมดมือถือ / เดสก์ท็อป">
           📱 PHONE MODE
         </button>
@@ -1403,6 +1408,7 @@
           <button onclick="setDemoSources([1,1,1,0,0,0])" class="px-2.5 py-1 text-xs rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 transition">เปิด S1, S2, S3</button>
           <button onclick="setDemoSources([1,1,1,1,1,1])" class="px-2.5 py-1 text-xs rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 transition">เปิดเต็ม 6 Sources</button>
           <button onclick="setDemoSources([0,0,0,0,0,0])" class="px-2.5 py-1 text-xs rounded bg-slate-700/50 hover:bg-slate-700 text-slate-200 border border-slate-500/50 transition">ปิดทุก Source (Stop)</button>
+          <button id="simAcToggleBtn" onclick="toggleSimulatedAc()" class="px-2.5 py-1 text-xs rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 transition">⚡ จำลองไฟ AC ดับ</button>
         </div>
       </div>
     </div>
@@ -1657,6 +1663,7 @@
     ];
 
     let isSimulationMode = true;
+    let simulationAcOk = true;
     let autoWriteArduinoEnabled = false;
     let liveStatusPollTimer = null;
     let timeSyncIntervalTimer = null;
@@ -1672,6 +1679,15 @@
     let lastLogSyncAt = 0;
     let lastLogSyncOk = false;
     let lastLogSyncError = '';
+
+    // ---------- USB Serial (Web Serial API) ----------
+    let serialMode = false;
+    let serialPort = null;
+    let serialReader = null;
+    let serialBuffer = '';
+    let serialLogCollecting = false;
+    let serialLogLines = [];
+    let serialLastStatusAt = 0;
     let lastImportedStats = null;
     let lastBoardStatus = null;
     let lastBoardStatusAt = 0;
@@ -1930,7 +1946,7 @@
     }
 
     // ตรวจความน่าเชื่อถือของ log ที่ดึงมา: ครบ seq, ซิงก์ล่าสุดเมื่อไร,
-    // breakdown ควรมี checkpoint ทุก 15 นาที, SD เขียนพลาด, นาฬิกาบอร์ดคลาด
+    // breakdown ควรมี checkpoint ทุก 1 นาที, SD เขียนพลาด, นาฬิกาบอร์ดคลาด
     function computeLogFreshness(ctx) {
       const nowMs = Number(ctx.nowMs) || Date.now();
       if (ctx.isSimulationMode) {
@@ -1968,8 +1984,8 @@
         if (mode === 'BREAKDOWN' && Number.isFinite(lastEndSec) && lastEndSec > 0) {
           // แปลง "ตอนนี้" เป็นเวลาบอร์ดก่อน 비교 กันเตือนผิดเมื่อนาฬิกา 2 ฝั่งไม่ตรงกัน
           const gapSec = (nowMs / 1000 + boardSkew) - lastEndSec;
-          // Firmware เขียน checkpoint ทุก 15 นาที → เกิน ~16.5 นาทีถือว่าน่าสงสัย
-          if (gapSec > 16.5 * 60) {
+          // Firmware เขียน checkpoint ทุก 1 นาที → เกิน ~2.5 นาทีถือว่าน่าสงสัย
+          if (gapSec > 2.5 * 60) {
             level = 'warn';
             notes.push(`breakdown ไม่มี log ใหม่ ${formatAgeShort(gapSec)}`);
           }
@@ -2033,8 +2049,398 @@
       if (lastSync) lastSync.textContent = lastLogSyncAt ? getThaiDateParts(lastLogSyncAt).timeStr : '-';
     }
 
+    // ================= USB SERIAL (Web Serial API) =================
+    function setSerialUiConnected() {
+      const indicator = document.getElementById('connIndicator');
+      const statusText = document.getElementById('connStatusText');
+      const btn = document.getElementById('toggleModeBtn');
+      const demoBar = document.getElementById('demoQuickBar');
+      const hint = document.getElementById('simControlHint');
+      const hwBadge = document.getElementById('hwStatusBadge');
+      const serialBtn = document.getElementById('serialModeBtn');
+      indicator.className = 'w-3 h-3 rounded-full bg-emerald-400 animate-pulse';
+      statusText.textContent = 'โหมด Serial (USB)';
+      statusText.className = 'font-bold text-emerald-300';
+      btn.disabled = true;
+      btn.textContent = 'SERIAL ACTIVE';
+      demoBar.classList.add('hidden');
+      hint.textContent = 'รับข้อมูล Source 1-6 / AC จาก Arduino ผ่าน USB Serial 115200';
+      hwBadge.textContent = 'SERIAL: CONNECTING...';
+      hwBadge.className = 'text-xs font-mono-tech text-cyan-300 px-2 py-0.5 border border-cyan-500/40 bg-cyan-950/50 rounded';
+      const ipSub = document.getElementById('connIpSubText');
+      if (ipSub) ipSub.textContent = 'USB SERIAL • 115200';
+      if (serialBtn) {
+        serialBtn.textContent = '🔌 ตัด SERIAL';
+        serialBtn.classList.add('ring-1', 'ring-emerald-400');
+      }
+    }
+
+    function setSimulationUiAfterSerial() {
+      const indicator = document.getElementById('connIndicator');
+      const statusText = document.getElementById('connStatusText');
+      const btn = document.getElementById('toggleModeBtn');
+      const demoBar = document.getElementById('demoQuickBar');
+      const hint = document.getElementById('simControlHint');
+      const hwBadge = document.getElementById('hwStatusBadge');
+      const serialBtn = document.getElementById('serialModeBtn');
+      isSimulationMode = true;
+      simulationAcOk = true;
+      lastConnectionState = 'sim';
+      lastBoardStatus = null;
+      lastBoardStatusAt = 0;
+      serialLogCollecting = false;
+      serialLogLines = [];
+      serialBuffer = '';
+      indicator.className = 'w-3 h-3 rounded-full bg-amber-400 animate-pulse';
+      statusText.textContent = 'โหมดจำลอง (SIMULATION)';
+      statusText.className = 'font-bold text-amber-300';
+      btn.disabled = false;
+      btn.textContent = 'สลับเป็น Arduino จริง';
+      demoBar.classList.remove('hidden');
+      hint.textContent = 'คลิกที่ Source 1-6 ด้านล่างเพื่อจำลองเปิด/ปิดไฟ';
+      hwBadge.textContent = 'HW: SIMULATION';
+      hwBadge.className = 'text-xs font-mono-tech text-slate-300 px-2 py-0.5 border border-slate-600 bg-slate-900/80 rounded';
+      updateEndpointLabel();
+      if (serialBtn) {
+        serialBtn.textContent = '🔌 SERIAL';
+        serialBtn.classList.remove('ring-1', 'ring-emerald-400');
+      }
+      updateSimAcButton();
+      evaluateSystemState(currentSources, true);
+      updateLiveClock();
+      updateLogFreshnessBadge();
+    }
+
+    async function serialSend(text) {
+      if (!serialPort || !serialPort.writable) return false;
+      let writer = null;
+      try {
+        writer = serialPort.writable.getWriter();
+        await writer.write(new TextEncoder().encode(text));
+        return true;
+      } catch (e) {
+        return false;
+      } finally {
+        if (writer) {
+          try { writer.releaseLock(); } catch (e) {}
+        }
+      }
+    }
+
+    async function connectSerial() {
+      if (!('serial' in navigator)) {
+        showToast('❌ เบราว์เซอร์นี้ไม่รองรับ Web Serial — ใช้ Chrome/Edge บนคอม (หรือเปิดผ่าน localhost)', 'error', 8000);
+        return;
+      }
+      try {
+        showToast('🔍 กำลังค้นหา COM port... ถ้าไม่มีรายการ แปลว่า Windows ยังไม่เห็นบอร์ด', 'info', 5000);
+        const granted = await navigator.serial.getPorts().catch(() => []);
+        let port = (granted.length === 1) ? granted[0] : null;
+        if (!port) {
+          try {
+            port = await navigator.serial.requestPort();
+          } catch (pickErr) {
+            const pickMsg = String(pickErr && pickErr.message ? pickErr.message : pickErr);
+            const likelyNoPort = /no port|not found|no device|abort|cancel|select/i.test(pickMsg);
+            showToast(
+              likelyNoPort
+                ? '❌ ไม่พบ COM port — ตรวจสาย USB (ต้องเป็นสายข้อมูล), ไดรเวอร์ CH340/ATmega16U2 และปิด Serial Monitor'
+                : '❌ เปิดรายการ COM ไม่สำเร็จ: ' + pickMsg,
+              'error',
+              9000
+            );
+            setSimulationUiAfterSerial();
+            return;
+          }
+        }
+        try {
+          await port.open({ baudRate: 115200 });
+        } catch (openErr) {
+          // พอร์ตที่เคยอนุญาตอาจถูกถอดอยู่: ลองให้เลือกใหม่หนึ่งครั้ง
+          if (granted.length === 1) {
+            port = await navigator.serial.requestPort();
+            await port.open({ baudRate: 115200 });
+          } else {
+            throw openErr;
+          }
+        }
+        serialPort = port;
+        serialMode = true;
+        serialBuffer = '';
+        serialLogCollecting = false;
+        serialLogLines = [];
+        isSimulationMode = false;
+        stopLiveArduinoPolling();
+        setAutoWriteState(false, 'โหมด Serial — บอร์ด Arduino บันทึก log ลง SD เอง');
+        lastConnectionState = 'connecting';
+        lastKnownArduinoSeq = 0;
+        hwSessionStartMs = null;
+        try { localStorage.setItem('gamma_conn_mode', 'serial'); } catch (e) {}
+        setSerialUiConnected();
+        ensureAudioContext();
+        playConnectSound();
+        let portLabel = 'USB Serial';
+        try {
+          const info = port.getInfo ? port.getInfo() : {};
+          if (info.usbVendorId) {
+            portLabel = `VID:${Number(info.usbVendorId).toString(16).toUpperCase()} PID:${Number(info.usbProductId || 0).toString(16).toUpperCase()}`;
+          }
+        } catch (e) {}
+        showToast(`🔌 กำลังเชื่อมต่อ Serial 115200 • ${portLabel}`, 'info', 8000);
+        serialTimeSync();
+        serialReadLoop().catch(() => {});
+        setTimeout(() => {
+          if (serialMode && lastConnectionState === 'connecting') {
+            showToast('⚠️ ยังไม่ได้รับข้อมูล @S — ตรวจ Baud 115200 และปิด Serial Monitor', 'warn', 7000);
+          }
+        }, 6000);
+      } catch (e) {
+        const msg = String(e && e.message ? e.message : e);
+        showToast('❌ เปิด Serial ไม่สำเร็จ: ' + msg, 'error', 7000);
+        serialMode = false;
+        serialPort = null;
+        setSimulationUiAfterSerial();
+      }
+    }
+
+    async function disconnectSerial(fromError = false) {
+      const wasSerial = serialMode;
+      serialMode = false;
+      try {
+        if (serialReader) {
+          await serialReader.cancel();
+          serialReader.releaseLock();
+        }
+      } catch (e) {}
+      serialReader = null;
+      try {
+        if (serialPort) await serialPort.close();
+      } catch (e) {}
+      serialPort = null;
+      serialBuffer = '';
+      serialLogCollecting = false;
+      serialLogLines = [];
+      setSimulationUiAfterSerial();
+      try { localStorage.setItem('gamma_conn_mode', 'simulation'); } catch (e) {}
+      if (wasSerial) {
+        showToast(fromError ? '❌ Serial หลุดการเชื่อมต่อ' : '🔌 ตัดการเชื่อมต่อ Serial แล้ว', fromError ? 'error' : 'info', 3500);
+      }
+    }
+
+    async function toggleSerialConnection() {
+      if (serialMode) {
+        await disconnectSerial(false);
+      } else {
+        await connectSerial();
+      }
+    }
+
+    async function serialReadLoop() {
+      const decoder = new TextDecoder();
+      try {
+        serialReader = serialPort.readable.getReader();
+      } catch (e) {
+        await disconnectSerial(true);
+        return;
+      }
+      try {
+        while (serialMode) {
+          const { value, done } = await serialReader.read();
+          if (done) break;
+          serialBuffer += decoder.decode(value, { stream: true });
+          let idx;
+          while ((idx = serialBuffer.indexOf('\n')) >= 0) {
+            const line = serialBuffer.slice(0, idx).replace(/\r$/, '').trim();
+            serialBuffer = serialBuffer.slice(idx + 1);
+            handleSerialLine(line);
+          }
+        }
+      } catch (e) {
+        if (serialMode) showToast('❌ Serial: ' + (e.message || e), 'error', 5000);
+      } finally {
+        const stillConnected = serialMode;
+        try { serialReader.releaseLock(); } catch (e) {}
+        serialReader = null;
+        if (stillConnected) {
+          serialMode = false;
+          try { if (serialPort) await serialPort.close(); } catch (e) {}
+          serialPort = null;
+          setSimulationUiAfterSerial();
+        }
+      }
+    }
+
+    function handleSerialLine(line) {
+      if (!line) return;
+      if (line.startsWith('@S ')) {
+        try {
+          applySerialStatus(JSON.parse(line.slice(3)));
+        } catch (e) {
+          console.warn('Serial status parse error', e);
+        }
+      } else if (line === '@LOG_BEGIN') {
+        serialLogCollecting = true;
+        serialLogLines = [];
+      } else if (line.startsWith('@L ')) {
+        if (serialLogCollecting) serialLogLines.push(line.slice(3));
+      } else if (line === '@LOG_END') {
+        finishSerialLogs();
+      } else if (line.startsWith('@ERR ')) {
+        if (serialLogCollecting) {
+          serialLogCollecting = false;
+          serialLogLines = [];
+        }
+        showToast('❌ Serial: ' + line.slice(5), 'error', 5000);
+      }
+    }
+
+    function serialTimeSync() {
+      const utc = Math.floor(Date.now() / 1000);
+      serialSend(`@TIME ${utc}\n`).catch(() => {});
+    }
+
+    function requestSerialLogs() {
+      if (!serialMode || serialLogCollecting) return;
+      serialLogCollecting = true;
+      serialLogLines = [];
+      serialSend('@LOGS\n').then(ok => {
+        if (!ok) {
+          serialLogCollecting = false;
+          lastKnownArduinoSeq = -1;
+          showToast('❌ ส่งคำสั่ง @LOGS ไม่สำเร็จ', 'error', 4000);
+        }
+      });
+    }
+
+    function finishSerialLogs() {
+      if (!serialLogCollecting && serialLogLines.length === 0) return;
+      serialLogCollecting = false;
+      const rows = Math.max(0, serialLogLines.length - 1); // หัก header
+      const csv = serialLogLines.join('\n').trim();
+      serialLogLines = [];
+      if (!csv) {
+        lastLogSyncOk = false;
+        lastLogSyncError = 'SERIAL_EMPTY';
+        updateLogFreshnessBadge();
+        return;
+      }
+      const editorEl = document.getElementById('arduinoLogEditorTextarea');
+      if (editorEl && document.activeElement !== editorEl) editorEl.value = csv;
+      const ok = importLogFromCsvString(csv, 'Arduino-Serial', true);
+      if (ok) {
+        lastLogSyncAt = Date.now();
+        lastLogSyncOk = true;
+        lastLogSyncError = '';
+        showToast(`✅ โหลด log จาก Serial สำเร็จ (${rows} แถว)`, 'success', 3500);
+      } else {
+        lastLogSyncOk = false;
+        lastLogSyncError = 'SERIAL_IMPORT_REJECTED';
+        showToast('❌ CSV จาก Serial ไม่ผ่านการตรวจสอบ', 'error', 5000);
+      }
+      updateLogFreshnessBadge();
+    }
+
+    function applySerialStatus(data) {
+      if (!data || data.protocol !== ARDUINO_PROTOCOL_NAME || Number(data.protocol_version) !== ARDUINO_PROTOCOL_VERSION) {
+        showToast('❌ Serial protocol ไม่ตรงกับ Dashboard', 'error', 5000);
+        return;
+      }
+      const parsedSources = (Array.isArray(data.sources) ? data.sources : []).map(v => {
+        const n = Number(v);
+        return (n === 0 || n === 1) ? n : null;
+      });
+      if (parsedSources.length !== 6 || parsedSources.some(v => v === null)) {
+        showToast('❌ ข้อมูล Source จาก Serial ไม่ถูกต้อง', 'error', 5000);
+        return;
+      }
+      const remoteMode = String(data.mode || '').toUpperCase();
+      if (!['RUNNING', 'BREAKDOWN', 'STOP'].includes(remoteMode)) return;
+
+      const wasOnline = lastConnectionState === 'online';
+      lastConnectionState = 'online';
+      serialLastStatusAt = Date.now();
+      const anySourceUp = parsedSources.some(v => v === 1);
+      const acOk = data.ac_ok || anySourceUp;
+      const boardEpochMs = Number(data.epoch) * 1000;
+      const clockSkewSec = Number.isFinite(boardEpochMs) && boardEpochMs > 0
+        ? Math.round((boardEpochMs - Date.now()) / 1000)
+        : null;
+      lastBoardStatus = { ...data, clock_skew_sec: clockSkewSec };
+      lastBoardStatusAt = Date.now();
+
+      const hwBadge = document.getElementById('hwStatusBadge');
+      hwBadge.textContent = `SERIAL: ONLINE | FW ${data.fw || '-'} | RTC:${data.has_rtc ? 'OK' : 'NO'} | SD:${data.has_sd ? 'OK' : 'NO'}`;
+      hwBadge.className = 'text-xs font-mono-tech text-emerald-300 px-2 py-0.5 border border-emerald-500/40 bg-emerald-950/50 rounded';
+
+      if (!wasOnline) {
+        showToast(`✅ เชื่อมต่อ Serial สำเร็จ • FW ${data.fw || '-'} • AC:${acOk ? 'OK' : 'LOST'} • RTC:${data.has_rtc ? 'OK' : 'NO'} • SD:${data.has_sd ? 'OK' : 'NO'}`, 'success', 5200);
+        playSuccessSound();
+        vibrate(40);
+      }
+
+      if ((data.time_valid === false || (clockSkewSec !== null && Math.abs(clockSkewSec) > 300)) && Date.now() > nextAutoTimeSyncAt) {
+        nextAutoTimeSyncAt = Date.now() + 60000;
+        serialTimeSync();
+      }
+
+      const sessSec = Number(data.session_sec);
+      if (Number.isFinite(sessSec) && sessSec >= 0 && sessSec < 315360000) {
+        hwSessionStartMs = Date.now() - sessSec * 1000;
+        const startParts = getThaiDateParts(hwSessionStartMs);
+        document.getElementById('sessionStartDisplay').textContent = `เริ่มรอบ: ${startParts.timeStr} น.`;
+      }
+
+      const remoteManualBreakdown = Boolean(data.manual_breakdown);
+      const pendingModeCommand = Date.now() < modeCommandPendingUntil;
+      if (!pendingModeCommand) {
+        if (!acOk && !anySourceUp) {
+          isBreakdownChecked = true;
+          document.getElementById('breakdownCheckbox').checked = true;
+          if (!breakdownReason.trim()) {
+            breakdownReason = 'AC_LOST_BREAKDOWN';
+            document.getElementById('breakdownReasonInput').value = breakdownReason;
+          }
+        } else if (anySourceUp) {
+          isBreakdownChecked = false;
+          document.getElementById('breakdownCheckbox').checked = false;
+        } else {
+          isBreakdownChecked = remoteManualBreakdown;
+          document.getElementById('breakdownCheckbox').checked = remoteManualBreakdown;
+          if (remoteManualBreakdown && data.breakdown_reason && document.activeElement !== document.getElementById('breakdownReasonInput')) {
+            breakdownReason = data.breakdown_reason;
+            document.getElementById('breakdownReasonInput').value = breakdownReason;
+          }
+        }
+      }
+
+      const previousAcOk = lastAcOk;
+      evaluateSystemState(parsedSources, acOk);
+      if (wasOnline && previousAcOk !== acOk) {
+        showToast(
+          acOk ? '✅ ไฟ AC กลับมาปกติ' : '⚡ ไฟ AC ดับ — Arduino กำลังบันทึก log ทุก 1 นาที',
+          acOk ? 'success' : 'warn',
+          5200
+        );
+        playSequence(acOk ? [660, 880] : [330, 220], 0.12, 0.06, 0.035, acOk ? 'sine' : 'triangle');
+        vibrate(acOk ? 40 : [80, 60, 80]);
+      }
+
+      updateLiveClock();
+      updateLogFreshnessBadge();
+
+      const remoteSeq = Number(data.next_seq || 0);
+      if (remoteSeq !== lastKnownArduinoSeq) {
+        lastKnownArduinoSeq = remoteSeq;
+        requestSerialLogs();
+      }
+    }
+
     async function syncThaiTimeToArduino() {
       if (isSimulationMode || timeSyncInFlight) return;
+      if (serialMode) {
+        serialTimeSync();
+        return;
+      }
       const baseUrl = getArduinoBaseUrl();
       if (!baseUrl) return;
       timeSyncInFlight = true;
@@ -2063,6 +2469,13 @@
 
     async function postModeToArduino(mode, reason = '') {
       if (isSimulationMode) return;
+      if (serialMode) {
+        const cleanRsn = sanitizeArduinoReason(reason);
+        const cmd = mode === 'BREAKDOWN' ? `@MODE BREAKDOWN,${cleanRsn}\n` : '@MODE STOP\n';
+        await serialSend(cmd);
+        modeCommandPendingUntil = Date.now() + 2500;
+        return;
+      }
       const baseUrl = getArduinoBaseUrl();
       if (!baseUrl) return;
       const cleanRsn = sanitizeArduinoReason(reason);
@@ -2093,13 +2506,14 @@
     }
 
     async function pollLiveStatusFromArduino() {
-      if (isSimulationMode) return;
+      if (isSimulationMode || serialMode) return;
       const baseUrl = getArduinoBaseUrl();
       if (!baseUrl) return;
 
       // Board ใช้ ENC28J60 ทีละ connection: กัน fetch ซ้อนกัน และถอยหลังเมื่อล้มเหลว
       if (pollInFlight || Date.now() < pollNextAllowedAt) return;
       pollInFlight = true;
+      const wasOnlineBefore = lastConnectionState === 'online';
 
       const hwBadge = document.getElementById('hwStatusBadge');
 
@@ -2131,11 +2545,15 @@
         pollFailStreak = 0;
         pollNextAllowedAt = 0;
 
+        const anySourceUp = parsedSources.some(v => v === 1);
+        // Source Up override: ถือว่า AC ปกติเพื่อยกเลิกสถานะไฟดับ
+        const acOk = data.ac_ok || anySourceUp;
+
         if (lastConnectionState !== 'online') {
           lastConnectionState = 'online';
           const timeNote = data.time_valid === false ? ' • ⚠ เวลายังไม่ซิงก์' : '';
           showToast(
-            `✅ เชื่อมต่อ Arduino สำเร็จ • FW ${data.fw || '-'} • RTC:${data.has_rtc ? 'OK' : 'NO'} • SD:${data.has_sd ? 'OK' : 'NO'}${timeNote}`,
+            `✅ เชื่อมต่อ Arduino สำเร็จ • FW ${data.fw || '-'} • AC:${acOk ? 'OK' : 'LOST'} • RTC:${data.has_rtc ? 'OK' : 'NO'} • SD:${data.has_sd ? 'OK' : 'NO'}${timeNote}`,
             'success',
             5200
           );
@@ -2143,8 +2561,6 @@
           vibrate(40);
         }
 
-        const acOk = data.ac_ok;
-        const anySourceUp = parsedSources.some(v => v === 1);
         const remoteManualBreakdown = Boolean(data.manual_breakdown);
 
         // ตรวจ protocol drift: mode ที่บอร์ดรายงานต้องตรงกับ sources/ac_ok
@@ -2212,7 +2628,20 @@
           }
         }
 
+        const previousAcOk = lastAcOk;
         evaluateSystemState(parsedSources, acOk);
+
+        if (wasOnlineBefore && previousAcOk !== acOk) {
+          showToast(
+            acOk
+              ? '✅ ไฟ AC กลับมาปกติ'
+              : '⚡ ไฟ AC ดับ — Arduino อยู่ใน BREAKDOWN และกำลังบันทึก log ทุก 1 นาที',
+            acOk ? 'success' : 'warn',
+            5200
+          );
+          playSequence(acOk ? [660, 880] : [330, 220], 0.12, 0.06, 0.035, acOk ? 'sine' : 'triangle');
+          vibrate(acOk ? 40 : [80, 60, 80]);
+        }
 
         // อัปเดต UI ก่อน แล้วค่อยดึง /logs เมื่อ seq เปลี่ยน
         // (รวมกรณี SD ถูกล้าง/เปลี่ยนการ์ดจน seq ลดลง ซึ่งเดิมตรวจไม่เจอ)
@@ -2262,6 +2691,7 @@
     }
 
     async function startLiveArduinoPolling() {
+      if (serialMode) return;
       stopLiveArduinoPolling();
       const generation = ++livePollGeneration;
       lastKnownArduinoSeq = 0;
@@ -2307,6 +2737,10 @@
     }
 
     async function fetchLogsFromArduinoEndpoint(silent = false) {
+      if (serialMode) {
+        requestSerialLogs();
+        return true;
+      }
       const baseUrl = getArduinoBaseUrl();
       if (!baseUrl) {
         lastLogSyncOk = false;
@@ -2316,7 +2750,7 @@
       }
       if (!silent) setLogEditorMsg(`[FETCHING] กำลังดึง /LOGS.CSV จาก ${baseUrl} ...`);
       try {
-        const res = await fetchWithTimeout(`${baseUrl}/logs`, { method: 'GET', cache: 'no-store', headers: apiHeaders() });
+        const res = await fetchWithTimeout(`${baseUrl}/logs`, { method: 'GET', cache: 'no-store', headers: apiHeaders() }, 120000);
         if (!res.ok) {
           lastLogSyncOk = false;
           lastLogSyncError = res.status === 401 ? 'UNAUTHORIZED' : `HTTP ${res.status}`;
@@ -3413,15 +3847,29 @@
     function evaluateSystemState(newSources, acOk = lastAcOk) {
       const safeSources = Array.isArray(newSources) ? newSources.slice(0, 6) : currentSources.slice(0, 6);
       while (safeSources.length < 6) safeSources.push(0);
-      updateAcBadge(acOk);
       const anySourceUp = safeSources.some(v => v === 1);
+      // Source Up เป็นตัว override: ยกเลิก Breakdown และ AC LOST อัตโนมัติ
+      const effectiveAcOk = anySourceUp ? true : acOk;
+      const wasBreakdown = activeSession.status === 'BREAKDOWN';
+      const wasAcFail = !lastAcOk;
+      const acChanged = effectiveAcOk !== lastAcOk;
+      updateAcBadge(effectiveAcOk);
       const cb = document.getElementById('breakdownCheckbox');
       const interlockBadge = document.getElementById('interlockBadge');
 
       if (anySourceUp) {
-        if (isBreakdownChecked) {
+        if (isBreakdownChecked || breakdownReason.trim() === 'AC_LOST_BREAKDOWN') {
           isBreakdownChecked = false;
           cb.checked = false;
+          breakdownReason = '';
+          document.getElementById('breakdownReasonInput').value = '';
+        }
+        if (isSimulationMode) {
+          simulationAcOk = true;
+          updateSimAcButton();
+        }
+        if (wasBreakdown || wasAcFail) {
+          showToast('⚡ Source Up — ยกเลิกสถานะ Breakdown/ไฟดับอัตโนมัติ', 'info', 3500);
         }
         cb.disabled = true;
         interlockBadge.textContent = 'INTERLOCK: LOCKED (มี SOURCE UP)';
@@ -3433,7 +3881,7 @@
       }
 
       let nextStatus = 'STOP';
-      if (!acOk && !anySourceUp) {
+      if (!effectiveAcOk && !anySourceUp) {
         nextStatus = 'BREAKDOWN';
         if (!breakdownReason.trim()) {
           breakdownReason = 'AC_LOST_BREAKDOWN';
@@ -3446,7 +3894,7 @@
       } else {
         nextStatus = 'STOP';
         // AC กลับมาแล้ว: ล้าง reason อัตโนมัติ กันติดไปตอนกด PM ครั้งถัดไป
-        if (acOk && breakdownReason.trim() === 'AC_LOST_BREAKDOWN') {
+        if (effectiveAcOk && breakdownReason.trim() === 'AC_LOST_BREAKDOWN') {
           breakdownReason = '';
           document.getElementById('breakdownReasonInput').value = '';
         }
@@ -3460,7 +3908,9 @@
       renderSourceCards();
       updateMainStatusVisuals(nextStatus);
 
-      if (statusChanged || (nextStatus === 'RUNNING' && sourcesChanged)) {
+      if (statusChanged ||
+          (nextStatus === 'RUNNING' && (sourcesChanged || acChanged)) ||
+          (nextStatus === 'BREAKDOWN' && acChanged)) {
         commitCurrentSessionAndStartNext(nextStatus, currentSources);
       }
     }
@@ -3655,8 +4105,51 @@
       evaluateSystemState(arr);
     }
 
+    function updateSimAcButton() {
+      const btn = document.getElementById('simAcToggleBtn');
+      if (!btn) return;
+      btn.textContent = simulationAcOk ? '⚡ จำลองไฟ AC ดับ' : '🔌 คืนไฟ AC';
+      btn.className = simulationAcOk
+        ? 'px-2.5 py-1 text-xs rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 transition'
+        : 'px-2.5 py-1 text-xs rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 transition';
+    }
+
+    function toggleSimulatedAc() {
+      if (!isSimulationMode) {
+        showToast('ℹ️ โหมด Arduino จริง — สถานะ AC มาจากบอร์ดโดยตรง', 'info', 3000);
+        return;
+      }
+      if (currentSources.some(v => v === 1)) {
+        showToast('ℹ️ มี Source Up อยู่ — ระบบยกเลิกสถานะ Breakdown/ไฟดับอัตโนมัติ', 'info', 3200);
+        simulationAcOk = true;
+        updateSimAcButton();
+        evaluateSystemState(currentSources, true);
+        return;
+      }
+      simulationAcOk = !simulationAcOk;
+      updateSimAcButton();
+      evaluateSystemState(currentSources, simulationAcOk);
+      showToast(
+        simulationAcOk
+          ? '✅ ไฟ AC กลับมาปกติ'
+          : '⚡ จำลองไฟ AC ดับ — เข้า BREAKDOWN / บันทึก log',
+        simulationAcOk ? 'success' : 'warn',
+        3800
+      );
+      playSequence(
+        simulationAcOk ? [660, 880] : [330, 220],
+        0.12, 0.06, 0.035,
+        simulationAcOk ? 'sine' : 'triangle'
+      );
+    }
+
     function toggleConnectionMode() {
+      if (serialMode) {
+        showToast('ℹ️ กำลังใช้โหมด Serial — กดปุ่ม SERIAL เพื่อตัดการเชื่อมต่อก่อน', 'info', 3500);
+        return;
+      }
       isSimulationMode = !isSimulationMode;
+      try { localStorage.setItem('gamma_conn_mode', isSimulationMode ? 'simulation' : 'hardware'); } catch (e) {}
       const indicator = document.getElementById('connIndicator');
       const statusText = document.getElementById('connStatusText');
       const btn = document.getElementById('toggleModeBtn');
@@ -3677,6 +4170,9 @@
         hwBadge.textContent = 'HW: SIMULATION';
         hwBadge.className = 'text-xs font-mono-tech text-slate-300 px-2 py-0.5 border border-slate-600 bg-slate-900/80 rounded';
         setAutoWriteState(false);
+        simulationAcOk = true;
+        updateSimAcButton();
+        evaluateSystemState(currentSources, true);
         lastConnectionState = 'sim';
         showToast('ℹ️ กลับสู่โหมดจำลอง', 'info', 1800);
         playSequence([440, 330], 0.1, 0.05, 0.025, 'sine');
@@ -3793,7 +4289,7 @@
     }
 
     // แถว BREAKDOWN ที่ต่อเนื่องกัน (end ของแถวก่อน = start ของแถวถัดไป) มาจาก checkpoint
-    // ทุก 15 นาทีของ Firmware: นับเป็น 1 ครั้ง แต่ยังแสดงทุกแถวในตารางเพื่อรักษาข้อมูลดิบ
+    // ทุก 1 นาทีของ Firmware: นับเป็น 1 ครั้ง แต่ยังแสดงทุกแถวในตารางเพื่อรักษาข้อมูลดิบ
     function countBreakdownSessions(items) {
       const rows = (Array.isArray(items) ? items : [])
         .filter(i => i && i.status === 'BREAKDOWN' && Number.isFinite(Number(i.startTimeMs)))
@@ -3809,12 +4305,29 @@
       return count;
     }
 
+    function countRunningSessions(items) {
+      const rows = (Array.isArray(items) ? items : [])
+        .filter(i => i && i.status === 'RUNNING' && Number.isFinite(Number(i.startTimeMs)))
+        .sort((a, b) => Number(a.startTimeMs) - Number(b.startTimeMs));
+      let count = 0;
+      let lastEnd = null;
+      let lastKey = null;
+      for (const row of rows) {
+        const start = Number(row.startTimeMs);
+        const key = (Array.isArray(row.sources) ? row.sources : []).map(v => (v === 1 ? '1' : '0')).join('');
+        if (lastEnd === null || Math.abs(start - lastEnd) > 2000 || key !== lastKey) count++;
+        const end = Number(row.endTimeMs);
+        lastEnd = Number.isFinite(end) ? end : start;
+        lastKey = key;
+      }
+      return count;
+    }
+
     function refreshDashboard() {
       const filtered = getFilteredLogs();
       const unit = co60Config.unit;
 
       let runMin = 0, breakMin = 0;
-      let runCount = 0;
       let totalDose = 0;
       const sourceMinutes = [0, 0, 0, 0, 0, 0];
       const sourceDoses = [0, 0, 0, 0, 0, 0];
@@ -3824,7 +4337,6 @@
         const durMin = Number(item.durationMinutes) || 0;
         if (item.status === 'RUNNING') {
           runMin += durMin;
-          runCount++;
           if (Number(item.doseRatePerMin) <= 0) unpricedRuns++;
 
           let itemDose = Number(item.absorbedDose) || 0;
@@ -3845,6 +4357,7 @@
           breakMin += durMin;
         }
       });
+      const runCount = countRunningSessions(filtered);
       const breakCount = countBreakdownSessions(filtered);
 
       const totalReportedMin = runMin + breakMin;
@@ -4280,6 +4793,7 @@
       updateEndpointLabel();
       loadApiToken();
       loadSoundSetting();
+      updateSimAcButton();
       applyUiMode(getSavedUiMode());
       initPageNavigation();
       const startParts = getThaiDateParts(activeSession.startTimeMs);
@@ -4289,6 +4803,35 @@
       refreshDashboard();
       updateLiveClock();
       updateLogFreshnessBadge();
+      let savedConnMode = 'simulation';
+      try { savedConnMode = localStorage.getItem('gamma_conn_mode') || 'simulation'; } catch (e) {}
+      if (savedConnMode === 'hardware') {
+        // เปิดหน้ามาแล้วโหลดสถานะ/log ล่าสุดจาก Arduino อัตโนมัติ (ถ้าเคยใช้โหมดจริง)
+        setTimeout(() => {
+          if (isSimulationMode) toggleConnectionMode();
+        }, 350);
+      } else if (savedConnMode === 'serial') {
+        setTimeout(async () => {
+          let ports = [];
+          if ('serial' in navigator) {
+            try { ports = await navigator.serial.getPorts(); } catch (e) {}
+          }
+          showToast(
+            ports.length
+              ? `🔌 พบ Serial ที่อนุญาตแล้ว ${ports.length} พอร์ต — กดปุ่ม SERIAL เพื่อเชื่อมต่อ`
+              : 'ℹ️ ยังไม่มี COM ที่อนุญาต — กดปุ่ม SERIAL แล้วเลือกพอร์ต (ถ้ารายการว่าง = Windows ไม่เห็นบอร์ด)',
+            'info',
+            7000
+          );
+        }, 800);
+      }
+      if ('serial' in navigator) {
+        navigator.serial.addEventListener('connect', () => {
+          if (!serialMode) {
+            showToast('🔌 ตรวจพบอุปกรณ์ Serial ใหม่ — กดปุ่ม SERIAL เพื่อเชื่อมต่อ', 'info', 5000);
+          }
+        });
+      }
       setInterval(updateLiveClock, 1000);
     });
   </script>
